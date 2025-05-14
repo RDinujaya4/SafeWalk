@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FastImage from 'react-native-fast-image';
 import {
   View,
   Text,
@@ -24,10 +25,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Signup</Text>
 
-      <Image
-        source={require('../assets/signup-image.png')} // Replace with your signup illustration
+      <FastImage
+        source={require('../assets/signup.gif')}
         style={styles.image}
-        resizeMode="contain"
+        resizeMode={FastImage.resizeMode.contain}
       />
 
       <TextInput

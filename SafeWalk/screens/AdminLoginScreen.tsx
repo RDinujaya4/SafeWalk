@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FastImage from 'react-native-fast-image';
 import {
   View,
   Text,
@@ -22,10 +23,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Admin Login</Text>
 
-      <Image
-        source={require('../assets/login-image.png')} // Replace with your actual file
+      <FastImage
+        source={require('../assets/login.gif')}
         style={styles.image}
-        resizeMode="contain"
+        resizeMode={FastImage.resizeMode.contain}
       />
 
       <TextInput

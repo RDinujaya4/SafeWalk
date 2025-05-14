@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import FastImage from 'react-native-fast-image';
 import { RootStackParamList } from '../App';
 
 type Props = {
@@ -10,10 +11,10 @@ type Props = {
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
-         <Image
-        source={require('../assets/splash-illustration.png')} // 👈 Save your illustration here
+      <FastImage
+        source={require('../assets/splash.gif')}
         style={styles.image}
-        resizeMode="contain"
+        resizeMode={FastImage.resizeMode.contain}
       />
 
       <Text style={styles.title}>SafeWalk</Text>
