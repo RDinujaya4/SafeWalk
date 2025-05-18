@@ -8,6 +8,7 @@ import SignupScreen from './screens/SignupScreen';
 import AdminLoginScreen from './screens/AdminLoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import AddPostScreen from './screens/AddPostScreen';
+import NotificationsScreen from './screens/NotificationScreen';
 
 
 export type RootStackParamList = {
@@ -17,6 +18,7 @@ export type RootStackParamList = {
   Home: undefined;
   AdminLogin: undefined;
   AddPost: undefined;
+  Notifications: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -31,6 +33,7 @@ const App = () => {
         <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
         <Stack.Screen name="AddPost" component={AddPostScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -13,8 +13,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 
-// Define navigation prop type for navigating to AddPost screen
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddPost'>;
+// Define navigation prop type for navigating from Home to any screen
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -27,12 +27,13 @@ const HomeScreen: React.FC = () => {
           source={require('../assets/profile.png')} // Replace with your profile image path
           style={styles.profileImage}
         />
-        <TouchableOpacity>
-          <View style={styles.notificationBox}>
-            <Icon name="notifications-outline" size={27} color="#000" />
-            <View style={styles.notificationDot} />
-          </View>
-        </TouchableOpacity>
+       <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+        <View style={styles.notificationBox}>
+          <Icon name="notifications-outline" size={27} color="#000" />
+          <View style={styles.notificationDot} />
+        </View>
+      </TouchableOpacity>
+
       </View>
 
       {/* Search Bar */}
