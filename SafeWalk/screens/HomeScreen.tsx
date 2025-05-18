@@ -9,8 +9,16 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
+
+// Define navigation prop type for navigating to AddPost screen
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddPost'>;
 
 const HomeScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp>();
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -20,12 +28,11 @@ const HomeScreen: React.FC = () => {
           style={styles.profileImage}
         />
         <TouchableOpacity>
-        <View style={styles.notificationBox}>
+          <View style={styles.notificationBox}>
             <Icon name="notifications-outline" size={27} color="#000" />
             <View style={styles.notificationDot} />
-        </View>
+          </View>
         </TouchableOpacity>
-
       </View>
 
       {/* Search Bar */}
@@ -52,12 +59,16 @@ const HomeScreen: React.FC = () => {
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         <Icon name="home-outline" size={26} color="#000" />
-        <Icon name="add-circle-outline" size={26} color="#000" />
+
+        {/* Updated: Touchable icon to navigate to AddPost screen */}
+        <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
+          <Icon name="add-circle-outline" size={26} color="#000" />
+        </TouchableOpacity>
+
         <Icon name="document-text-outline" size={26} color="#000" />
-        {/* <Icon name="map-outline" size={26} color="#000" /> */}
         <View style={styles.mapWithPin}>
-            <Icon name="map-outline" size={30} color="#000" />
-            <Icon name="location-outline"size={14} color="#000" style={styles.pinOnMap}/>
+          <Icon name="map-outline" size={30} color="#000" />
+          <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
         </View>
       </View>
     </View>
