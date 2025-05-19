@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
+    marginLeft: 65,
     color: '#000',
   },
   scrollContainer: {

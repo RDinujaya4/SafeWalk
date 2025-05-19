@@ -9,7 +9,7 @@ import AdminLoginScreen from './screens/AdminLoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import AddPostScreen from './screens/AddPostScreen';
 import NotificationsScreen from './screens/NotificationScreen';
-
+import ProfileScreen from './screens/ProfileScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -19,6 +19,7 @@ export type RootStackParamList = {
   AdminLogin: undefined;
   AddPost: undefined;
   Notifications: undefined;
+  Profile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -34,6 +35,7 @@ const App = () => {
         <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
         <Stack.Screen name="AddPost" component={AddPostScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

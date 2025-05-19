@@ -23,17 +23,19 @@ const HomeScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={require('../assets/profile.png')} // Replace with your profile image path
-          style={styles.profileImage}
-        />
-       <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-        <View style={styles.notificationBox}>
-          <Icon name="notifications-outline" size={27} color="#000" />
-          <View style={styles.notificationDot} />
-        </View>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Image
+            source={require('../assets/profile.png')} // Replace with your profile image path
+            style={styles.profileImage}
+          />
+        </TouchableOpacity>
 
+        <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+          <View style={styles.notificationBox}>
+            <Icon name="notifications-outline" size={27} color="#000" />
+            <View style={styles.notificationDot} />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}

@@ -8,6 +8,7 @@ import {
   Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import Icons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 const AddPostScreen = () => {
@@ -27,8 +28,8 @@ const AddPostScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity>
-          <Icon name="arrow-left" size={24} color="#000" />
+        <TouchableOpacity style={styles.backButton}>
+          <Icons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>Add Post</Text>
         <View style={{ width: 24 }} /> {/* Spacer */}
@@ -96,6 +97,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#000',
+  },
+    backButton: {
+    marginRight: 15,
+    padding: 4,
+    backgroundColor: '#fff',
+    borderRadius: 10,
   },
   imageUploadBox: {
     height: 150,
