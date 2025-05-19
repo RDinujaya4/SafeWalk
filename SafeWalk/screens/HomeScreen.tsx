@@ -68,7 +68,10 @@ const HomeScreen: React.FC = () => {
           <Icon name="add-circle-outline" size={26} color="#000" />
         </TouchableOpacity>
 
-        <Icon name="document-text-outline" size={26} color="#000" />
+        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
+          <Icon name="document-text-outline" size={26} color="#000" />
+        </TouchableOpacity>
+  
         <View style={styles.mapWithPin}>
           <Icon name="map-outline" size={30} color="#000" />
           <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
