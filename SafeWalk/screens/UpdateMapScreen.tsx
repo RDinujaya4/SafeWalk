@@ -3,8 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   ScrollView,
+  Image,
   TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -14,7 +14,7 @@ import { RootStackParamList } from '../App';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const UpdatesScreen: React.FC = () => {
+const UpdateMapScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
   return (
@@ -26,10 +26,10 @@ const UpdatesScreen: React.FC = () => {
             <Icon name="arrow-back" size={24} color="#000" />
           </View>
         </TouchableOpacity>
-        <Text style={styles.title}>Updates</Text>
+        <Text style={styles.title}>Update Map</Text>
       </View>
 
-      {/* Scrollable Updates */}
+      {/* Scrollable Map Updates */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {[1, 2].map((item, index) => (
           <View key={index} style={styles.updateCard}>
@@ -49,22 +49,26 @@ const UpdatesScreen: React.FC = () => {
             </Text>
 
             <Image
-              source={require('../assets/news.jpg')} // Add your asset here
-              style={styles.postImage}
+              source={require('../assets/news.jpg')}
+              style={styles.mapImage}
             />
 
-            <View style={styles.iconRow}>
-              <Icon name="chatbubble-outline" size={22} style={styles.icon} />
-              <Icon name="thumbs-up-outline" size={22} style={styles.icon} />
-              <Icon name="bookmark-outline" size={22} style={styles.icon} />
-              <Icon name="share-social-outline" size={22} style={styles.icon} />
-            </View>
+            <TouchableOpacity style={styles.removeButton}>
+              <Text style={styles.removeText}>Remove</Text>
+            </TouchableOpacity>
           </View>
         ))}
+
+        {/* View More */}
+        <TouchableOpacity style={styles.viewMoreButton}>
+          <Text style={styles.viewMoreText}>View more</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 };
+
+export default UpdateMapScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -87,7 +91,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginLeft: 90,
+    marginLeft: 80,
   },
   scrollContainer: {
     paddingHorizontal: 16,
@@ -122,21 +126,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  postImage: {
+  mapImage: {
     width: '100%',
-    height: 150,
+    height: 130,
     borderRadius: 12,
-    marginBottom: 10,
+    marginBottom: 12,
     resizeMode: 'cover',
   },
-  iconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
+  removeButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 1, height: 1 },
+    shadowRadius: 3,
+    elevation: 3,
   },
-  icon: {
-    color: '#000',
+  removeText: {
+    color: '#d00',
+    fontWeight: 'bold',
+  },
+  viewMoreButton: {
+    alignSelf: 'center',
+    backgroundColor: '#444',
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  viewMoreText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
-
-export default UpdatesScreen;

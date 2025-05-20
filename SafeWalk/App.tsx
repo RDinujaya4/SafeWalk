@@ -11,6 +11,7 @@ import AddPostScreen from './screens/AddPostScreen';
 import NotificationsScreen from './screens/NotificationScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import UpdatesScreen from './screens/UpdatesScreen';
+import UpdateMapScreen from './screens/UpdateMapScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   Profile: undefined;
   Updates: undefined;
+  UpdateMap: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +41,7 @@ const App = () => {
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Updates" component={UpdatesScreen} />
+        <Stack.Screen name="UpdateMap" component={UpdateMapScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

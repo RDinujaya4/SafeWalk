@@ -25,7 +25,7 @@ const HomeScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Image
-            source={require('../assets/profile.png')} // Replace with your profile image path
+            source={require('../assets/profile.png')}
             style={styles.profileImage}
           />
         </TouchableOpacity>
