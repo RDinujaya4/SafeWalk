@@ -73,8 +73,10 @@ const HomeScreen: React.FC = () => {
         </TouchableOpacity>
   
         <View style={styles.mapWithPin}>
-          <Icon name="map-outline" size={30} color="#000" />
-          <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
+          <TouchableOpacity onPress={() => navigation.navigate('SafetyMap')}>
+            <Icon name="map-outline" size={30} color="#000" />
+            <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 50,
     height: 50,
-    borderRadius: 14,
+    borderRadius: 13,
   },
   notificationBox: {
     backgroundColor: '#fff',
