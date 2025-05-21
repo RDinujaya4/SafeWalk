@@ -73,7 +73,7 @@ const HomeScreen: React.FC = () => {
         </TouchableOpacity>
   
         <View style={styles.mapWithPin}>
-          <TouchableOpacity onPress={() => navigation.navigate('SafetyMap')}>
+          <TouchableOpacity>
             <Icon name="map-outline" size={30} color="#000" />
             <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
           </TouchableOpacity>
