@@ -61,8 +61,10 @@ const HomeScreen: React.FC = () => {
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
-        <Icon name="home-outline" size={26} color="#000" />
-
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <Icon name="home-outline" size={26} color="#000" />
+        </TouchableOpacity>
+    
         {/* Updated: Touchable icon to navigate to AddPost screen */}
         <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
           <Icon name="add-circle-outline" size={26} color="#000" />

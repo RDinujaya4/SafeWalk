@@ -10,8 +10,16 @@ import {
 import Icon from 'react-native-vector-icons/Feather';
 import Icons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
 
-const AddPostScreen = () => {
+// Define navigation prop type for navigating from Home to any screen
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+const AddPostScreen: React.FC = () =>{
+  const navigation = useNavigation<NavigationProp>();
+
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
@@ -28,7 +36,7 @@ const AddPostScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>Add Post</Text>
@@ -72,8 +80,28 @@ const AddPostScreen = () => {
         <Text style={styles.shareButtonText}>Share</Text>
       </TouchableOpacity>
 
-      {/* Bottom Nav Placeholder (optional) */}
-      {/* You can integrate bottom tab navigation here if needed */}
+      {/* Bottom Navigation */}
+        <View style={styles.bottomNav}>
+          <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+            <Icons name="home-outline" size={26} color="#000" />
+          </TouchableOpacity>
+      
+          {/* Updated: Touchable icon to navigate to AddPost screen */}
+          <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
+            <Icons name="add-circle-outline" size={26} color="#000" />
+          </TouchableOpacity>
+      
+          <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
+            <Icons name="document-text-outline" size={26} color="#000" />
+          </TouchableOpacity>
+        
+          <View style={styles.mapWithPin}>
+            <TouchableOpacity>
+              <Icons name="map-outline" size={30} color="#000" />
+              <Icons name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
+            </TouchableOpacity>
+          </View>
+        </View>
     </View>
   );
 };
@@ -103,6 +131,16 @@ const styles = StyleSheet.create({
     padding: 4,
     backgroundColor: '#fff',
     borderRadius: 10,
+  },
+  mapWithPin: {
+    position: 'relative',
+    width: 30,
+    height: 30,
+  },
+  pinOnMap: {
+    position: 'absolute',
+    top: 5,
+    right: 7,
   },
   imageUploadBox: {
     height: 150,
@@ -151,5 +189,17 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });
