@@ -14,10 +14,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 
-// Define navigation prop type for navigating from Home to any screen
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const AddPostScreen: React.FC = () =>{
+const AddPostScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -40,7 +39,7 @@ const AddPostScreen: React.FC = () =>{
           <Icons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>Add Post</Text>
-        <View style={{ width: 24 }} /> {/* Spacer */}
+        <View style={{ width: 24 }} />
       </View>
 
       {/* Upload Image */}
@@ -48,10 +47,10 @@ const AddPostScreen: React.FC = () =>{
         {imageUri ? (
           <Image source={{ uri: imageUri }} style={styles.uploadedImage} />
         ) : (
-          <>
+          <View style={{ alignItems: 'center' }}>
             <Icon name="upload-cloud" size={30} color="#999" />
             <Text style={styles.uploadText}>Upload Image</Text>
-          </>
+          </View>
         )}
       </TouchableOpacity>
 
@@ -81,27 +80,26 @@ const AddPostScreen: React.FC = () =>{
       </TouchableOpacity>
 
       {/* Bottom Navigation */}
-        <View style={styles.bottomNav}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-            <Icons name="home-outline" size={26} color="#000" />
+      <View style={styles.bottomNav}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <Icons name="home-outline" size={26} color="#000" />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
+          <Icons name="add-circle-outline" size={26} color="#000" />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
+          <Icons name="document-text-outline" size={26} color="#000" />
+        </TouchableOpacity>
+
+        <View style={styles.mapWithPin}>
+          <TouchableOpacity>
+            <Icons name="map-outline" size={30} color="#000" />
+            <Icons name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
           </TouchableOpacity>
-      
-          {/* Updated: Touchable icon to navigate to AddPost screen */}
-          <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
-            <Icons name="add-circle-outline" size={26} color="#000" />
-          </TouchableOpacity>
-      
-          <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
-            <Icons name="document-text-outline" size={26} color="#000" />
-          </TouchableOpacity>
-        
-          <View style={styles.mapWithPin}>
-            <TouchableOpacity>
-              <Icons name="map-outline" size={30} color="#000" />
-              <Icons name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
-            </TouchableOpacity>
-          </View>
         </View>
+      </View>
     </View>
   );
 };
