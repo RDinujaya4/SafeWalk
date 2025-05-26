@@ -15,18 +15,20 @@ import { RootStackParamList } from '../App';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const SafetyMapScreen: React.FC = () => {
-    const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation<NavigationProp>();
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-            <View style={styles.backButton}>
-                <Icon name="arrow-back" size={24} color="#000" />
-            </View>
+          <View style={styles.backButton}>
+            <Icon name="arrow-back" size={24} color="#000" />
+          </View>
         </TouchableOpacity>
         <Text style={styles.title}>Safety Map</Text>
-        <View style={{ width: 26 }} /> {/* Placeholder for alignment */}
+        {/* Placeholder for alignment */}
+        <View style={{ width: 26 }} />
       </View>
 
       {/* Search Bar */}
@@ -39,15 +41,17 @@ const SafetyMapScreen: React.FC = () => {
         />
       </View>
 
-      {/* Map with markers */}
+      {/* Map label */}
       <Text style={styles.mapLabel}>Mark the area</Text>
+
+      {/* Map image */}
       <Image
-        source={require('../assets/map.png')} // Replace with your map image
+        source={require('../assets/map.png')}
         style={styles.mapImage}
         resizeMode="cover"
       />
 
-      {/* Description input */}
+      {/* Description Input */}
       <TextInput
         style={styles.descriptionBox}
         placeholder="Description"
@@ -89,7 +93,6 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   backButton: {
-    marginRight: 15,
     padding: 4,
     backgroundColor: '#fff',
     borderRadius: 10,
