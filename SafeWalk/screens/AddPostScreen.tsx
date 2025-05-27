@@ -94,7 +94,7 @@ const AddPostScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.mapWithPin}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Map')}>
             <Icons name="map-outline" size={30} color="#000" />
             <Icons name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
           </TouchableOpacity>

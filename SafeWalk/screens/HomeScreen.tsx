@@ -47,7 +47,9 @@ const HomeScreen: React.FC = () => {
       {/* Recent Updates */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent Updates</Text>
-        <Text style={styles.viewAll}>View All</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
+           <Text style={styles.viewAll}>View All</Text>
+        </TouchableOpacity>      
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
@@ -75,7 +77,7 @@ const HomeScreen: React.FC = () => {
         </TouchableOpacity>
   
         <View style={styles.mapWithPin}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Map')}>
             <Icon name="map-outline" size={30} color="#000" />
             <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
           </TouchableOpacity>

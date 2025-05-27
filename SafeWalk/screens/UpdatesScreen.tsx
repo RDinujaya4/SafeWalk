@@ -124,7 +124,7 @@ const UpdatesScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.mapWithPin}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Map')}>
             <Icon name="map-outline" size={30} color="#000" />
             <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
           </TouchableOpacity>
