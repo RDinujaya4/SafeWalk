@@ -6,6 +6,7 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +18,11 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const ProfileScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
     
+    const logoutHandler = () => {
+        Alert.alert('Logged Out', 'You have been logged out.');
+        navigation.navigate('Login');
+      };
+
   return (
     <View style={styles.container}>
       {/* Top Navigation */}
@@ -33,7 +39,7 @@ const ProfileScreen: React.FC = () => {
       {/* Profile Picture */}
       <View style={styles.profileContainer}>
         <Image
-          source={require('../assets/profile-img.jpg')} // Replace with actual image
+          source={require('../assets/profile-img.jpg')}
           style={styles.profileImage}
         />
         <TouchableOpacity style={styles.cameraIcon}>
@@ -71,9 +77,8 @@ const ProfileScreen: React.FC = () => {
           editable={false}
         />
       </View>
-
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutBtn}>
+      
+      <TouchableOpacity style={styles.logoutBtn} onPress={logoutHandler}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </View>

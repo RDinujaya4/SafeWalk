@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,8 +16,16 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const AdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
+  const logoutHandler = () => {
+    Alert.alert('Logged Out', 'You have been logged out.');
+    navigation.navigate('AdminLogin');
+  };
+
   return (
     <View style={styles.container}>
+      {/* Welcome Message */}
+      <Text style={styles.welcomeText}>Welcome, Admin 👋</Text>
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
@@ -41,6 +49,10 @@ const AdminDashboardScreen: React.FC = () => {
           <Text style={styles.cardTitle}>Safety Map</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={logoutHandler}>
+        <Text style={styles.logoutText}>Log Out</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -50,12 +62,19 @@ export default AdminDashboardScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e9f1f7', // same as your other screens
+    backgroundColor: '#e9f1f7',
     padding: 20,
   },
+  welcomeText: {
+    marginTop: 40,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    alignSelf: 'center',
+  },
   header: {
-    marginTop: 50,
     alignItems: 'center',
+    marginTop: 10,
     marginBottom: 30,
   },
   headerTitle: {
@@ -85,5 +104,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#000',
+  },
+  logoutButton: {
+    backgroundColor: '#d62828',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    alignSelf: 'center',
+    marginBottom: 20,
+    elevation: 3,
+  },
+  logoutText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
