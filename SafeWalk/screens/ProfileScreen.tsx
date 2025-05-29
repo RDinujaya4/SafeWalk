@@ -31,9 +31,9 @@ const ProfileScreen: React.FC = () => {
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity>
+        {/* <TouchableOpacity>
           <Icon name="settings-outline" size={26} color="#000" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Profile Picture */}
@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
+    marginRight: 140,
   },
   profileContainer: {
     alignSelf: 'center',

@@ -6,10 +6,12 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Image,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App'; // Adjust if your navigation file is elsewhere
+import { RootStackParamList } from '../App';
+import { auth, firestore } from '../firebaseConfig';
+import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -18,6 +20,39 @@ type Props = {
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Email and password are required.');
+      return;
+    }
+
+    try {
+      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      const userDoc = await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+
+        if (userData?.role === 'admin') {
+          Alert.alert('Success', 'Login successful!');
+          navigation.navigate('AdminDashboard');
+        } else {
+          Alert.alert('Success', 'Login successful!');
+          navigation.navigate('Home');
+        }
+      } else {
+        Alert.alert('Error', 'User role not found in Firestore.');
+      }
+    } catch (error: any) {
+      Alert.alert('Login Error', error.message);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -46,16 +81,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.input}
       />
 
-      <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('Home')}>
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginButtonText}>Login</Text>
       </TouchableOpacity>
 
       <Text style={styles.footerText}>
         Don’t have an account?{' '}
-        <Text
-          style={styles.linkText}
-          onPress={() => navigation.navigate('Signup')}
-        >
+        <Text style={styles.linkText} onPress={() => navigation.navigate('Signup')}>
           click here
         </Text>
       </Text>

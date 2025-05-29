@@ -6,10 +6,13 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Image,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App'; // Adjust based on your actual navigation
+import { RootStackParamList } from '../App';
+import { auth, firestore } from '../firebaseConfig';
+import { doc, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Signup'>;
@@ -20,6 +23,36 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleSignup = async () => {
+    if (!username || !email || !password || !confirmPassword) {
+      Alert.alert('Error', 'All fields are required.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+
+    try {
+      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      await firestore().collection('users').doc(user.uid).set({
+        uid: user.uid,
+        username,
+        email,
+        role: 'user',
+        createdAt: serverTimestamp(),
+      });
+
+      Alert.alert('Success', 'Account created successfully!');
+      navigation.navigate('Login');
+    } catch (error: any) {
+      Alert.alert('Signup Error', error.message);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -45,6 +78,8 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         value={email}
         onChangeText={setEmail}
         style={styles.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -65,26 +100,23 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.input}
       />
 
-      <TouchableOpacity style={styles.signupButton} onPress={() => {}}>
+      <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
         <Text style={styles.signupButtonText}>Create Account</Text>
       </TouchableOpacity>
 
       <View style={styles.footerContainer}>
         <Text style={styles.footerText}>
-            Already have an account?{' '}
-            <Text style={styles.linkText} onPress={() => navigation.navigate('Login')}>
+          Already have an account?{' '}
+          <Text style={styles.linkText} onPress={() => navigation.navigate('Login')}>
             click here
-            </Text>
+          </Text>
         </Text>
 
         <Text style={styles.footerText}>
-            Admin Login?{' '}
-            <Text
-            style={styles.linkText}
-            onPress={() => navigation.navigate('AdminLogin')} // Update if your route name is different
-            >
+          Admin Login?{' '}
+          <Text style={styles.linkText} onPress={() => navigation.navigate('AdminLogin')}>
             click here
-            </Text>
+          </Text>
         </Text>
       </View>
     </View>
@@ -146,5 +178,5 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     alignItems: 'center',
-  },  
+  },
 });
