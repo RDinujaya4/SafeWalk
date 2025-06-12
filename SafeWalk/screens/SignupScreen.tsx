@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import FastImage from 'react-native-fast-image';
 import {
   View,
   Text,
@@ -8,11 +7,11 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
-import { auth, firestore } from '../firebaseConfig';
-import { doc, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
-import { createUserWithEmailAndPassword } from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Signup'>;
@@ -36,15 +35,17 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
+      // Create user with email and password
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
+      // Add user data to Firestore
       await firestore().collection('users').doc(user.uid).set({
         uid: user.uid,
         username,
         email,
         role: 'user',
-        createdAt: serverTimestamp(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
       Alert.alert('Success', 'Account created successfully!');

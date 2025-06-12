@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import FastImage from 'react-native-fast-image';
 import {
   View,
   Text,
@@ -8,10 +7,11 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
-import { auth, firestore } from '../firebaseConfig';
-import { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -31,23 +31,21 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       const userCredential = await auth().signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      const userDoc = await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .get();
+      const userDoc = await firestore().collection('users').doc(user.uid).get();
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (!userDoc.exists) {
+        Alert.alert('Error', 'User record not found in Firestore.');
+        return;
+      }
 
-        if (userData?.role === 'admin') {
-          Alert.alert('Success', 'Login successful!');
-          navigation.navigate('AdminDashboard');
-        } else {
-          Alert.alert('Success', 'Login successful!');
-          navigation.navigate('Home');
-        }
+      const userData = userDoc.data();
+
+      if (userData?.role === 'admin') {
+        navigation.navigate('AdminDashboard');
+      } else if (userData?.role === 'user') {
+        navigation.navigate('Home');
       } else {
-        Alert.alert('Error', 'User role not found in Firestore.');
+        Alert.alert('Error', 'User role is invalid or missing.');
       }
     } catch (error: any) {
       Alert.alert('Login Error', error.message);
@@ -70,6 +68,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         value={email}
         onChangeText={setEmail}
         style={styles.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -85,12 +85,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.loginButtonText}>Login</Text>
       </TouchableOpacity>
 
-      <Text style={styles.footerText}>
-        Don’t have an account?{' '}
-        <Text style={styles.linkText} onPress={() => navigation.navigate('Signup')}>
-          click here
+      <View style={styles.footerContainer}>
+        <Text style={styles.footerText}>
+          Don’t have an account?{' '}
+          <Text style={styles.linkText} onPress={() => navigation.navigate('Signup')}>
+            Sign up
+          </Text>
         </Text>
-      </Text>
+      </View>
     </View>
   );
 };
@@ -147,5 +149,8 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#0000FF',
     fontWeight: '500',
+  },
+  footerContainer: {
+    alignItems: 'center',
   },
 });
