@@ -20,14 +20,31 @@ type Props = {
 
 const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [username, setUsername] = useState('');
+  const [isUsernameTaken, setIsUsernameTaken] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const checkUsername = async (name: string) => {
+    if (!name.trim()) return;
+    try {
+      const doc = await firestore().collection('usernames').doc(name).get();
+      setIsUsernameTaken(doc.exists);
+    } catch (error) {
+      console.log('Error checking username:', error);
+      setIsUsernameTaken(false);
+    }
+  };
+
   const handleSignup = async () => {
     if (!username || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'All fields are required.');
+      return;
+    }
+
+    if (isUsernameTaken) {
+      Alert.alert('Error', 'Username is already taken.');
       return;
     }
 
@@ -39,9 +56,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
+      // 1. Create Firebase Auth account
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
+      // 2. Save user data to 'users'
       await firestore().collection('users').doc(user.uid).set({
         uid: user.uid,
         username,
@@ -50,17 +69,24 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      // Get role and redirect automatically
+      // 3. Reserve username
+      await firestore().collection('usernames').doc(username).set({
+        uid: user.uid,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 4. Redirect based on role
       const docSnap = await firestore().collection('users').doc(user.uid).get();
       const userData = docSnap.data();
 
       if (userData?.role === 'admin') {
         navigation.reset({ index: 0, routes: [{ name: 'AdminDashboard' }] });
       } else {
-        navigation.reset({ index: 0, routes: [{ name: 'Home' }] }); // change this to your main screen for users
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       }
 
     } catch (error: any) {
+      console.log('Signup Error:', error);
       Alert.alert('Signup Error', error.message);
     } finally {
       setLoading(false);
@@ -83,9 +109,16 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         placeholder="Username"
         placeholderTextColor="#888"
         value={username}
-        onChangeText={setUsername}
+        onChangeText={(text) => {
+          setUsername(text);
+          setIsUsernameTaken(false); // reset when typing
+        }}
+        onBlur={() => checkUsername(username)}
         style={styles.input}
       />
+      {isUsernameTaken && (
+        <Text style={{ color: 'red', marginBottom: 10 }}>Username already taken</Text>
+      )}
 
       <TextInput
         placeholder="Email"
