@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import Spinner from 'react-native-loading-spinner-overlay';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import auth from '@react-native-firebase/auth';
@@ -22,6 +23,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
     if (!username || !email || !password || !confirmPassword) {
@@ -34,12 +36,12 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    setLoading(true);
+
     try {
-      // Create user with email and password
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // Add user data to Firestore
       await firestore().collection('users').doc(user.uid).set({
         uid: user.uid,
         username,
@@ -48,15 +50,27 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      Alert.alert('Success', 'Account created successfully!');
-      navigation.navigate('Login');
+      // Get role and redirect automatically
+      const docSnap = await firestore().collection('users').doc(user.uid).get();
+      const userData = docSnap.data();
+
+      if (userData?.role === 'admin') {
+        navigation.reset({ index: 0, routes: [{ name: 'AdminDashboard' }] });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] }); // change this to your main screen for users
+      }
+
     } catch (error: any) {
       Alert.alert('Signup Error', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <Spinner visible={loading} textContent="Signing up..." textStyle={{ color: '#fff' }} />
+
       <Text style={styles.title}>Signup</Text>
 
       <FastImage
@@ -112,7 +126,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             click here
           </Text>
         </Text>
-
         <Text style={styles.footerText}>
           Admin Login?{' '}
           <Text style={styles.linkText} onPress={() => navigation.navigate('AdminLogin')}>
