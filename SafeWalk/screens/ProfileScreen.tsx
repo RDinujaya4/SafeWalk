@@ -32,32 +32,35 @@ const ProfileScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const user = auth().currentUser;
-      if (!user) return;
+    const user = auth().currentUser;
+    if (!user) return;
 
-      try {
-        const userDoc = await firestore().collection('users').doc(user.uid).get();
-        if (userDoc.exists()) {
-          const data = userDoc.data();
+    const unsubscribeUser = firestore()
+      .collection('users')
+      .doc(user.uid)
+      .onSnapshot(doc => {
+        if (doc.exists()) {
+          const data = doc.data();
           setUsername(data?.username || '');
           setName(data?.name || '');
           setBio(data?.bio || '');
         }
+      });
 
-        const postsSnapshot = await firestore()
-          .collection('posts')
-          .where('userId', '==', user.uid)
-          .get();
+    const unsubscribePosts = firestore()
+      .collection('posts')
+      .where('userId', '==', user.uid)
+      .onSnapshot(snapshot => {
+        setTotalPosts(snapshot.size);
+      });
 
-        setTotalPosts(postsSnapshot.size);
-      } catch (error) {
-        console.error('Error loading profile data:', error);
-      }
-    };
-
-    fetchUserData();
+    // Cleanup listeners on unmount
+      return () => {
+        unsubscribeUser();
+        unsubscribePosts();
+      };
   }, []);
+
 
   return (
     <View style={styles.container}>
