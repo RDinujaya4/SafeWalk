@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,20 +13,51 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
-  // Replace with data from Firebase later
-  const [name, setName] = useState('Rayan Dinujaya');
-  const [bio, setBio] = useState('Student at SCU & UOB, Software developer');
-  const email = 'rayan@gamil.com';
+  const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const handleSave = () => {
-    // Backend update logic here (e.g., Firestore)
-    Alert.alert('Saved', 'Profile updated successfully!');
+  const user = auth().currentUser;
+
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = firestore()
+      .collection('users')
+      .doc(user.uid)
+      .onSnapshot(doc => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setName(data?.name || '');
+          setBio(data?.bio || '');
+          setEmail(data?.email || user.email || '');
+        }
+        setLoading(false);
+      });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleSave = async () => {
+    try {
+      await firestore().collection('users').doc(user?.uid).update({
+        name,
+        bio,
+      });
+      Alert.alert('Saved', 'Profile updated successfully!');
+    } catch (error) {
+      console.error('Error saving user data:', error);
+      Alert.alert('Error', 'Failed to update profile.');
+    }
   };
 
   return (
@@ -72,7 +103,11 @@ const SettingsScreen: React.FC = () => {
 
       <View style={[styles.inputWrapper, { backgroundColor: '#f0f0f0' }]}>
         <Icon name="mail-outline" size={18} style={styles.icon} />
-        <TextInput value={email} editable={false} style={[styles.input, { color: '#888' }]} />
+        <TextInput
+          value={email}
+          editable={false}
+          style={[styles.input, { color: '#888' }]}
+        />
       </View>
 
       {/* Save Button */}
