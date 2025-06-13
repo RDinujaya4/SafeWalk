@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,19 +13,51 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
+  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [totalPosts, setTotalPosts] = useState(0);
+
   const logoutHandler = () => {
     Alert.alert('Logged Out', 'You have been logged out.');
     navigation.navigate('Login');
   };
 
-  // Sample static data — replace with real data from Firestore later
-  const totalPosts = 12;
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth().currentUser;
+      if (!user) return;
+
+      try {
+        const userDoc = await firestore().collection('users').doc(user.uid).get();
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUsername(data?.username || '');
+          setName(data?.name || '');
+          setBio(data?.bio || '');
+        }
+
+        const postsSnapshot = await firestore()
+          .collection('posts')
+          .where('userId', '==', user.uid)
+          .get();
+
+        setTotalPosts(postsSnapshot.size);
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -46,23 +78,18 @@ const ProfileScreen: React.FC = () => {
           <Image source={require('../assets/profile-img.jpg')} style={styles.profileImage} />
         </View>
 
-        <Text style={styles.username}>@rayan_ds</Text>
+        <Text style={styles.username}>@{username}</Text>
 
         {/* Display Name */}
         <View style={styles.inputWrapper}>
           <Icon name="person-outline" size={18} style={styles.icon} />
-          <TextInput value="Rayan Dinujaya" style={styles.input} editable={false} />
+          <TextInput value={name} style={styles.input} editable={false} />
         </View>
 
         {/* Bio */}
         <View style={styles.inputWrapper}>
-          <Icon name="information-circle-outline" size={18} style={styles.icon} />
-          <TextInput
-            value="Student at SCU & UOB, Software developer"
-            style={styles.input}
-            multiline
-            editable={false}
-          />
+          <Icon name="information-circle-outline" size={19} style={styles.icon} />
+          <TextInput value={bio} style={styles.input} multiline editable={false} />
         </View>
 
         {/* Total Posts */}
@@ -73,10 +100,16 @@ const ProfileScreen: React.FC = () => {
 
         {/* Manage & Saved Posts Buttons */}
         <View style={styles.buttonGroup}>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('AddPost')}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('AddPost')}
+          >
             <Text style={styles.secondaryButtonText}>Manage Posts</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('AddPost')}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('AddPost')}
+          >
             <Text style={styles.secondaryButtonText}>Saved Posts</Text>
           </TouchableOpacity>
         </View>
