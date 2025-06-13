@@ -6,6 +6,7 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -16,68 +17,72 @@ import { RootStackParamList } from '../App';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const ProfileScreen: React.FC = () => {
-    const navigation = useNavigation<NavigationProp>();
-    
-    const logoutHandler = () => {
-        Alert.alert('Logged Out', 'You have been logged out.');
-        navigation.navigate('Login');
-      };
+  const navigation = useNavigation<NavigationProp>();
+
+  const logoutHandler = () => {
+    Alert.alert('Logged Out', 'You have been logged out.');
+    navigation.navigate('Login');
+  };
+
+  // Sample static data — replace with real data from Firestore later
+  const totalPosts = 12;
 
   return (
     <View style={styles.container}>
-      {/* Top Navigation */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity>
-          <Icon name="settings-outline" size={26} color="#000" />
-        </TouchableOpacity>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Profile</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+            <Icon name="settings-outline" size={26} color="#000" />
+          </TouchableOpacity>
+        </View>
 
-      {/* Profile Picture */}
-      <View style={styles.profileContainer}>
-        <Image
-          source={require('../assets/profile-img.jpg')}
-          style={styles.profileImage}
-        />
-        <TouchableOpacity style={styles.cameraIcon}>
-          <Icon name="camera-outline" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
+        {/* Profile Picture */}
+        <View style={styles.profileContainer}>
+          <Image source={require('../assets/profile-img.jpg')} style={styles.profileImage} />
+        </View>
 
-      <Text style={styles.username}>@rayan_ds</Text>
+        <Text style={styles.username}>@rayan_ds</Text>
 
-      {/* Form Fields */}
-      <View style={styles.inputWrapper}>
-        <Icon name="person-outline" size={18} style={styles.icon} />
-        <TextInput
-          value="Rayan Dinujaya"
-          style={styles.input}
-          editable={false}
-        />
-      </View>
+        {/* Display Name */}
+        <View style={styles.inputWrapper}>
+          <Icon name="person-outline" size={18} style={styles.icon} />
+          <TextInput value="Rayan Dinujaya" style={styles.input} editable={false} />
+        </View>
 
-      <View style={styles.inputWrapper}>
-        <Icon name="mail-outline" size={18} style={styles.icon} />
-        <TextInput
-          value="rayan@gamil.com"
-          style={styles.input}
-          editable={false}
-        />
-      </View>
+        {/* Bio */}
+        <View style={styles.inputWrapper}>
+          <Icon name="information-circle-outline" size={18} style={styles.icon} />
+          <TextInput
+            value="Student at SCU & UOB, Software developer"
+            style={styles.input}
+            multiline
+            editable={false}
+          />
+        </View>
 
-      <View style={styles.inputWrapper}>
-        <Icon name="information-circle-outline" size={18} style={styles.icon} />
-        <TextInput
-          value="Student at SCU & UOB, Software developer"
-          style={styles.input}
-          multiline
-          editable={false}
-        />
-      </View>
-      
+        {/* Total Posts */}
+        <View style={styles.postsCountBox}>
+          <Icon name="document-text-outline" size={18} style={styles.icon} />
+          <Text style={styles.postsText}>Posts: {totalPosts}</Text>
+        </View>
+
+        {/* Manage & Saved Posts Buttons */}
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('AddPost')}>
+            <Text style={styles.secondaryButtonText}>Manage Posts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('AddPost')}>
+            <Text style={styles.secondaryButtonText}>Saved Posts</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Logout Button at Bottom */}
       <TouchableOpacity style={styles.logoutBtn} onPress={logoutHandler}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
@@ -91,8 +96,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#e7f1f3',
+  },
+  scrollContainer: {
     paddingHorizontal: 20,
     paddingTop: 40,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -104,6 +112,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginRight: 10,
   },
+  backButton: {
+    marginRight: 15,
+    padding: 4,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+  },
   profileContainer: {
     alignSelf: 'center',
     marginTop: 20,
@@ -112,14 +126,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 60,
-  },
-  cameraIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#555',
-    borderRadius: 12,
-    padding: 4,
   },
   username: {
     textAlign: 'center',
@@ -145,16 +151,45 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 15,
   },
-   backButton: {
-    marginRight: 15,
-    padding: 4,
+  postsCountBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 9,
+    marginBottom: 6,
+    padding: 10,
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 12,
+    elevation: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  postsText: {
+    fontSize: 15,
+    fontWeight: '400',
+    marginLeft: 8,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 30,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: '#248dad',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   logoutBtn: {
-    backgroundColor: '#FF6B5E',
-    marginTop: 30,
+    position: 'absolute',
+    bottom: 60,
     alignSelf: 'center',
+    backgroundColor: '#FF6B5E',
     paddingHorizontal: 40,
     paddingVertical: 12,
     borderRadius: 20,
