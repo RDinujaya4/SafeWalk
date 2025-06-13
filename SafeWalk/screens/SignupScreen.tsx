@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import Spinner from 'react-native-loading-spinner-overlay';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import auth from '@react-native-firebase/auth';
@@ -19,13 +20,31 @@ type Props = {
 
 const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [username, setUsername] = useState('');
+  const [isUsernameTaken, setIsUsernameTaken] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const checkUsername = async (name: string) => {
+    if (!name.trim()) return;
+    try {
+      const doc = await firestore().collection('usernames').doc(name).get();
+      setIsUsernameTaken(doc.exists);
+    } catch (error) {
+      console.log('Error checking username:', error);
+      setIsUsernameTaken(false);
+    }
+  };
 
   const handleSignup = async () => {
     if (!username || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'All fields are required.');
+      return;
+    }
+
+    if (isUsernameTaken) {
+      Alert.alert('Error', 'Username is already taken.');
       return;
     }
 
@@ -34,12 +53,14 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    setLoading(true);
+
     try {
-      // Create user with email and password
+      // 1. Create Firebase Auth account
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // Add user data to Firestore
+      // 2. Save user data to 'users'
       await firestore().collection('users').doc(user.uid).set({
         uid: user.uid,
         username,
@@ -48,15 +69,34 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      Alert.alert('Success', 'Account created successfully!');
-      navigation.navigate('Login');
+      // 3. Reserve username
+      await firestore().collection('usernames').doc(username).set({
+        uid: user.uid,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 4. Redirect based on role
+      const docSnap = await firestore().collection('users').doc(user.uid).get();
+      const userData = docSnap.data();
+
+      if (userData?.role === 'admin') {
+        navigation.reset({ index: 0, routes: [{ name: 'AdminDashboard' }] });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+      }
+
     } catch (error: any) {
+      console.log('Signup Error:', error);
       Alert.alert('Signup Error', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <Spinner visible={loading} textContent="Signing up..." textStyle={{ color: '#fff' }} />
+
       <Text style={styles.title}>Signup</Text>
 
       <FastImage
@@ -69,9 +109,16 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         placeholder="Username"
         placeholderTextColor="#888"
         value={username}
-        onChangeText={setUsername}
+        onChangeText={(text) => {
+          setUsername(text);
+          setIsUsernameTaken(false); // reset when typing
+        }}
+        onBlur={() => checkUsername(username)}
         style={styles.input}
       />
+      {isUsernameTaken && (
+        <Text style={{ color: 'red', marginBottom: 10 }}>Username already taken</Text>
+      )}
 
       <TextInput
         placeholder="Email"
@@ -112,7 +159,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             click here
           </Text>
         </Text>
-
         <Text style={styles.footerText}>
           Admin Login?{' '}
           <Text style={styles.linkText} onPress={() => navigation.navigate('AdminLogin')}>

@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import Spinner from 'react-native-loading-spinner-overlay';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -20,12 +21,15 @@ type Props = {
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Email and password are required.');
       return;
     }
+
+    setLoading(true);
 
     try {
       const userCredential = await auth().signInWithEmailAndPassword(email, password);
@@ -41,19 +45,23 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       const userData = userDoc.data();
 
       if (userData?.role === 'admin') {
-        navigation.navigate('AdminDashboard');
+        navigation.reset({ index: 0, routes: [{ name: 'AdminDashboard' }] });
       } else if (userData?.role === 'user') {
-        navigation.navigate('Home');
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       } else {
         Alert.alert('Error', 'User role is invalid or missing.');
       }
     } catch (error: any) {
       Alert.alert('Login Error', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <Spinner visible={loading} textContent="Logging in..." textStyle={{ color: '#fff' }} />
+
       <Text style={styles.title}>Login</Text>
 
       <FastImage
