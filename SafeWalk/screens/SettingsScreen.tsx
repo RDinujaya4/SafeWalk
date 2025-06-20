@@ -42,6 +42,7 @@ const SettingsScreen: React.FC = () => {
       .collection('users')
       .doc(user.uid)
       .onSnapshot(doc => {
+        if (!auth().currentUser) return; // guard after logout
         if (doc.exists()) {
           const data = doc.data();
           setName(data?.name || '');
@@ -82,12 +83,11 @@ const SettingsScreen: React.FC = () => {
   const uploadImage = async (uri: string) => {
     if (!user) return;
 
-    setUploading(true); // 🔒 Lock screen
+    setUploading(true);
 
     try {
       const fileName = `${user.uid}.jpg`;
       const destPath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
-
       await RNFS.copyFile(uri, destPath);
 
       const reference = storage().ref(`/profilePictures/${fileName}`);
@@ -105,7 +105,7 @@ const SettingsScreen: React.FC = () => {
       console.error('Image upload failed:', error);
       Alert.alert('Error', 'Image upload failed.');
     } finally {
-      setUploading(false); // 🔓 Unlock screen
+      setUploading(false);
     }
   };
 
@@ -128,12 +128,16 @@ const SettingsScreen: React.FC = () => {
               source={photoURL ? { uri: photoURL } : require('../assets/profile-img.jpg')}
               style={styles.profileImage}
             />
-            <TouchableOpacity style={styles.cameraIcon} onPress={handleImagePick} disabled={uploading}>
+            <TouchableOpacity
+              style={styles.cameraIcon}
+              onPress={handleImagePick}
+              disabled={uploading}
+            >
               <Icon name="camera-outline" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          {/* Editable Fields */}
+          {/* Name Field */}
           <View style={styles.inputWrapper}>
             <Icon name="person-outline" size={18} style={styles.icon} />
             <TextInput
@@ -145,6 +149,7 @@ const SettingsScreen: React.FC = () => {
             />
           </View>
 
+          {/* Bio Field */}
           <View style={styles.inputWrapper}>
             <Icon name="information-circle-outline" size={18} style={styles.icon} />
             <TextInput
@@ -157,6 +162,7 @@ const SettingsScreen: React.FC = () => {
             />
           </View>
 
+          {/* Email Field */}
           <View style={[styles.inputWrapper, { backgroundColor: '#f0f0f0' }]}>
             <Icon name="mail-outline" size={18} style={styles.icon} />
             <TextInput
@@ -176,7 +182,9 @@ const SettingsScreen: React.FC = () => {
         {uploading && (
           <View style={styles.overlay}>
             <ActivityIndicator size="large" color="#248dad" />
-            <Text style={{ marginTop: 10, color: '#248dad', fontWeight: '600' }}>Uploading...</Text>
+            <Text style={{ marginTop: 10, color: '#248dad', fontWeight: '600' }}>
+              Uploading...
+            </Text>
           </View>
         )}
       </View>

@@ -16,10 +16,8 @@ import { RootStackParamList } from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
 const ProfileScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
@@ -30,8 +28,10 @@ const ProfileScreen: React.FC = () => {
   const logoutHandler = async () => {
     try {
       await auth().signOut();
-      Alert.alert('Logged Out', 'You have been logged out.');
-      navigation.navigate('Login');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
     } catch (error) {
       console.error('Logout error:', error);
       Alert.alert('Logout Failed', 'An error occurred during logout. Please try again.');
@@ -46,6 +46,7 @@ const ProfileScreen: React.FC = () => {
       .collection('users')
       .doc(user.uid)
       .onSnapshot(doc => {
+        if (!auth().currentUser) return;
         if (doc.exists()) {
           const data = doc.data();
           setUsername(data?.username || '');
@@ -59,6 +60,7 @@ const ProfileScreen: React.FC = () => {
       .collection('posts')
       .where('userId', '==', user.uid)
       .onSnapshot(snapshot => {
+        if (!auth().currentUser) return;
         setTotalPosts(snapshot.size);
       });
 
@@ -68,10 +70,11 @@ const ProfileScreen: React.FC = () => {
     };
   }, []);
 
+  if (!auth().currentUser) return null;
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color="#000" />
@@ -82,7 +85,6 @@ const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Profile Picture */}
         <View style={styles.profileContainer}>
           <Image
             source={photoURL ? { uri: photoURL } : require('../assets/profile-img.jpg')}
@@ -92,25 +94,21 @@ const ProfileScreen: React.FC = () => {
 
         <Text style={styles.username}>@{username}</Text>
 
-        {/* Display Name */}
         <View style={styles.inputWrapper}>
           <Icon name="person-outline" size={18} style={styles.icon} />
           <TextInput value={name} style={styles.input} editable={false} />
         </View>
 
-        {/* Bio */}
         <View style={styles.inputWrapper}>
           <Icon name="information-circle-outline" size={19} style={styles.icon} />
           <TextInput value={bio} style={styles.input} multiline editable={false} />
         </View>
 
-        {/* Total Posts */}
         <View style={styles.postsCountBox}>
           <Icon name="document-text-outline" size={18} style={styles.icon} />
           <Text style={styles.postsText}>Posts: {totalPosts}</Text>
         </View>
 
-        {/* Buttons */}
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             style={styles.secondaryButton}
@@ -127,7 +125,6 @@ const ProfileScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={logoutHandler}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
