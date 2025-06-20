@@ -24,11 +24,18 @@ const ProfileScreen: React.FC = () => {
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
+  const [photoURL, setPhotoURL] = useState('');
   const [totalPosts, setTotalPosts] = useState(0);
 
-  const logoutHandler = () => {
-    Alert.alert('Logged Out', 'You have been logged out.');
-    navigation.navigate('Login');
+  const logoutHandler = async () => {
+    try {
+      await auth().signOut();
+      Alert.alert('Logged Out', 'You have been logged out.');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Error', 'Failed to log out.');
+    }
   };
 
   useEffect(() => {
@@ -44,6 +51,7 @@ const ProfileScreen: React.FC = () => {
           setUsername(data?.username || '');
           setName(data?.name || '');
           setBio(data?.bio || '');
+          setPhotoURL(data?.photoURL || '');
         }
       });
 
@@ -54,13 +62,11 @@ const ProfileScreen: React.FC = () => {
         setTotalPosts(snapshot.size);
       });
 
-    // Cleanup listeners on unmount
-      return () => {
-        unsubscribeUser();
-        unsubscribePosts();
-      };
+    return () => {
+      unsubscribeUser();
+      unsubscribePosts();
+    };
   }, []);
-
 
   return (
     <View style={styles.container}>
@@ -78,7 +84,10 @@ const ProfileScreen: React.FC = () => {
 
         {/* Profile Picture */}
         <View style={styles.profileContainer}>
-          <Image source={require('../assets/profile-img.jpg')} style={styles.profileImage} />
+          <Image
+            source={photoURL ? { uri: photoURL } : require('../assets/profile-img.jpg')}
+            style={styles.profileImage}
+          />
         </View>
 
         <Text style={styles.username}>@{username}</Text>
@@ -101,7 +110,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.postsText}>Posts: {totalPosts}</Text>
         </View>
 
-        {/* Manage & Saved Posts Buttons */}
+        {/* Buttons */}
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             style={styles.secondaryButton}
@@ -118,7 +127,7 @@ const ProfileScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Logout Button at Bottom */}
+      {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={logoutHandler}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>

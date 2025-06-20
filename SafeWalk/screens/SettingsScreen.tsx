@@ -10,11 +10,14 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
+import RNFS from 'react-native-fs';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,6 +27,7 @@ const SettingsScreen: React.FC = () => {
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [email, setEmail] = useState('');
+  const [photoURL, setPhotoURL] = useState('');
   const [loading, setLoading] = useState(true);
 
   const user = auth().currentUser;
@@ -40,6 +44,7 @@ const SettingsScreen: React.FC = () => {
           setName(data?.name || '');
           setBio(data?.bio || '');
           setEmail(data?.email || user.email || '');
+          setPhotoURL(data?.photoURL || '');
         }
         setLoading(false);
       });
@@ -60,6 +65,44 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
+  const handleImagePick = async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo' });
+    if (result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      const path = asset.uri;
+      if (path) {
+        uploadImage(path);
+      }
+    }
+  };
+
+const uploadImage = async (uri: string) => {
+  if (!user) return;
+
+  try {
+    // Create a local copy with a known file path and extension
+    const fileName = `${user.uid}.jpg`;
+    const destPath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+
+    await RNFS.copyFile(uri, destPath); // Convert content:// URI to file://
+
+    const reference = storage().ref(`/profilePictures/${fileName}`);
+    await reference.putFile(destPath);
+
+    const url = await reference.getDownloadURL();
+    setPhotoURL(url);
+
+    await firestore().collection('users').doc(user.uid).update({
+      photoURL: url,
+    });
+
+    Alert.alert('Success', 'Profile image updated!');
+  } catch (error) {
+    console.error('Image upload failed:', error);
+    Alert.alert('Error', 'Image upload failed.');
+  }
+};
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header */}
@@ -73,8 +116,11 @@ const SettingsScreen: React.FC = () => {
 
       {/* Profile Picture */}
       <View style={styles.profileContainer}>
-        <Image source={require('../assets/profile-img.jpg')} style={styles.profileImage} />
-        <TouchableOpacity style={styles.cameraIcon}>
+        <Image
+          source={photoURL ? { uri: photoURL } : require('../assets/profile-img.jpg')}
+          style={styles.profileImage}
+        />
+        <TouchableOpacity style={styles.cameraIcon} onPress={handleImagePick}>
           <Icon name="camera-outline" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
