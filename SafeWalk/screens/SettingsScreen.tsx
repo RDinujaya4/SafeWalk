@@ -8,6 +8,8 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -29,6 +31,7 @@ const SettingsScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   const user = auth().currentUser;
 
@@ -76,91 +79,108 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
-const uploadImage = async (uri: string) => {
-  if (!user) return;
+  const uploadImage = async (uri: string) => {
+    if (!user) return;
 
-  try {
-    // Create a local copy with a known file path and extension
-    const fileName = `${user.uid}.jpg`;
-    const destPath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+    setUploading(true); // 🔒 Lock screen
 
-    await RNFS.copyFile(uri, destPath); // Convert content:// URI to file://
+    try {
+      const fileName = `${user.uid}.jpg`;
+      const destPath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
 
-    const reference = storage().ref(`/profilePictures/${fileName}`);
-    await reference.putFile(destPath);
+      await RNFS.copyFile(uri, destPath);
 
-    const url = await reference.getDownloadURL();
-    setPhotoURL(url);
+      const reference = storage().ref(`/profilePictures/${fileName}`);
+      await reference.putFile(destPath);
 
-    await firestore().collection('users').doc(user.uid).update({
-      photoURL: url,
-    });
+      const url = await reference.getDownloadURL();
+      setPhotoURL(url);
 
-    Alert.alert('Success', 'Profile image updated!');
-  } catch (error) {
-    console.error('Image upload failed:', error);
-    Alert.alert('Error', 'Image upload failed.');
-  }
-};
+      await firestore().collection('users').doc(user.uid).update({
+        photoURL: url,
+      });
+
+      Alert.alert('Success', 'Profile image updated!');
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      Alert.alert('Error', 'Image upload failed.');
+    } finally {
+      setUploading(false); // 🔓 Unlock screen
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Settings</Text>
-        <Text style={{ width: 24 }}>{' '}</Text>
-      </View>
+    <TouchableWithoutFeedback disabled={!uploading}>
+      <View style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.container} scrollEnabled={!uploading}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.title}>Settings</Text>
+            <Text style={{ width: 24 }}>{' '}</Text>
+          </View>
 
-      {/* Profile Picture */}
-      <View style={styles.profileContainer}>
-        <Image
-          source={photoURL ? { uri: photoURL } : require('../assets/profile-img.jpg')}
-          style={styles.profileImage}
-        />
-        <TouchableOpacity style={styles.cameraIcon} onPress={handleImagePick}>
-          <Icon name="camera-outline" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
+          {/* Profile Picture */}
+          <View style={styles.profileContainer}>
+            <Image
+              source={photoURL ? { uri: photoURL } : require('../assets/profile-img.jpg')}
+              style={styles.profileImage}
+            />
+            <TouchableOpacity style={styles.cameraIcon} onPress={handleImagePick} disabled={uploading}>
+              <Icon name="camera-outline" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
 
-      {/* Editable Fields */}
-      <View style={styles.inputWrapper}>
-        <Icon name="person-outline" size={18} style={styles.icon} />
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-          placeholder="Full Name"
-        />
-      </View>
+          {/* Editable Fields */}
+          <View style={styles.inputWrapper}>
+            <Icon name="person-outline" size={18} style={styles.icon} />
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+              placeholder="Full Name"
+              editable={!uploading}
+            />
+          </View>
 
-      <View style={styles.inputWrapper}>
-        <Icon name="information-circle-outline" size={18} style={styles.icon} />
-        <TextInput
-          value={bio}
-          onChangeText={setBio}
-          style={styles.input}
-          placeholder="Your bio"
-          multiline
-        />
-      </View>
+          <View style={styles.inputWrapper}>
+            <Icon name="information-circle-outline" size={18} style={styles.icon} />
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              style={styles.input}
+              placeholder="Your bio"
+              multiline
+              editable={!uploading}
+            />
+          </View>
 
-      <View style={[styles.inputWrapper, { backgroundColor: '#f0f0f0' }]}>
-        <Icon name="mail-outline" size={18} style={styles.icon} />
-        <TextInput
-          value={email}
-          editable={false}
-          style={[styles.input, { color: '#888' }]}
-        />
-      </View>
+          <View style={[styles.inputWrapper, { backgroundColor: '#f0f0f0' }]}>
+            <Icon name="mail-outline" size={18} style={styles.icon} />
+            <TextInput
+              value={email}
+              editable={false}
+              style={[styles.input, { color: '#888' }]}
+            />
+          </View>
 
-      {/* Save Button */}
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <Text style={styles.saveText}>Save Changes</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {/* Save Button */}
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={uploading}>
+            <Text style={styles.saveText}>Save Changes</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* Spinner Overlay */}
+        {uploading && (
+          <View style={styles.overlay}>
+            <ActivityIndicator size="large" color="#248dad" />
+            <Text style={{ marginTop: 10, color: '#248dad', fontWeight: '600' }}>Uploading...</Text>
+          </View>
+        )}
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -236,5 +256,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
 });
