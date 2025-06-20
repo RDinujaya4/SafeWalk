@@ -34,7 +34,7 @@ const ProfileScreen: React.FC = () => {
       navigation.navigate('Login');
     } catch (error) {
       console.error('Logout error:', error);
-      Alert.alert('Error', 'Failed to log out.');
+      Alert.alert('Logout Failed', 'An error occurred during logout. Please try again.');
     }
   };
 
