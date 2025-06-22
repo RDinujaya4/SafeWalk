@@ -61,50 +61,59 @@ const AddPostScreen: React.FC = () => {
   };
 
   const handleShare = async () => {
-    if (!user) return;
+  if (!user) return;
 
-    if (!imageUri || !title.trim() || !location.trim() || !description.trim()) {
-      Alert.alert('Missing Fields', 'Please fill in all fields and select an image.');
-      return;
-    }
+  if (!imageUri || !title.trim() || !location.trim() || !description.trim()) {
+    Alert.alert('Missing Fields', 'Please fill in all fields and select an image.');
+    return;
+  }
 
-    try {
-      setUploading(true);
+  try {
+    setUploading(true);
 
-      const fileName = `${user.uid}_${Date.now()}.jpg`;
-      const filePath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
-      await RNFS.copyFile(imageUri, filePath);
+    // Fetch user details from Firestore
+    const userDoc = await firestore().collection('users').doc(user.uid).get();
+    const userData = userDoc.data();
+    const profilePicUrl = userData?.photoURL || '';
 
-      const storageRef = storage().ref(`posts/${fileName}`);
-      await storageRef.putFile(filePath);
+    // Upload image to Firebase Storage
+    const fileName = `${user.uid}_${Date.now()}.jpg`;
+    const filePath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+    await RNFS.copyFile(imageUri, filePath);
 
-      const downloadURL = await storageRef.getDownloadURL();
+    const storageRef = storage().ref(`posts/${fileName}`);
+    await storageRef.putFile(filePath);
 
-      await firestore().collection('posts').add({
-        userId: user.uid,
-        username: username || 'unknown',
-        title: title.trim(),
-        location: location.trim(),
-        description: description.trim(),
-        anonymous: anonymous ? 'yes' : 'no',
-        imageUrl: downloadURL,
-        createdAt: firestore.FieldValue.serverTimestamp(),
-      });
+    const downloadURL = await storageRef.getDownloadURL();
 
-      Alert.alert('Success', 'Post shared successfully!');
-      setImageUri(null);
-      setTitle('');
-      setLocation('');
-      setDescription('');
-      setAnonymous(false);
-      navigation.goBack();
-    } catch (error) {
-      console.error('Post upload failed:', error);
-      Alert.alert('Error', 'Failed to share post.');
-    } finally {
-      setUploading(false);
-    }
-  };
+    // Save post to Firestore
+    await firestore().collection('posts').add({
+      userId: user.uid,
+      username: username || 'unknown',
+      title: title.trim(),
+      location: location.trim(),
+      description: description.trim(),
+      anonymous: anonymous ? 'yes' : 'no',
+      photoURL: profilePicUrl,
+      imageUrl: downloadURL,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    Alert.alert('Success', 'Post shared successfully!');
+    setImageUri(null);
+    setTitle('');
+    setLocation('');
+    setDescription('');
+    setAnonymous(false);
+    navigation.goBack();
+  } catch (error) {
+    console.error('Post upload failed:', error);
+    Alert.alert('Error', 'Failed to share post.');
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -170,7 +179,7 @@ const AddPostScreen: React.FC = () => {
         >
           <Icons
             name={anonymous ? 'checkbox-outline' : 'square-outline'}
-            size={20}
+            size={23}
             color="#333"
             style={{ marginRight: 10 }}
           />

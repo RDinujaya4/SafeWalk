@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,37 @@ import {
   Modal,
   TextInput,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import firestore from '@react-native-firebase/firestore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+interface Post {
+  id: string;
+  username: string;
+  photoURL?: string;
+  imageUrl: string;
+  title: string;
+  description: string;
+  location: string;
+  createdAt?: any;
+  anonymous: 'yes' | 'no';
+}
+
+const DEFAULT_AVATAR = require('../assets/default-avatar.png');
 
 const UpdatesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [modalVisible, setModalVisible] = useState(false);
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState<string[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const handleAddComment = () => {
     if (comment.trim()) {
@@ -29,6 +47,30 @@ const UpdatesScreen: React.FC = () => {
       setComment('');
     }
   };
+
+  useEffect(() => {
+    const unsubscribe = firestore()
+      .collection('posts')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        const fetched: Post[] = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Post, 'id'>),
+        }));
+        setPosts(fetched);
+        setLoading(false);
+      });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF7F6C" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -42,48 +84,56 @@ const UpdatesScreen: React.FC = () => {
         <Text style={styles.title}>Updates</Text>
       </View>
 
-      {/* Scrollable Updates */}
+      {/* Posts */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {[1, 2].map((item, index) => (
-          <View key={index} style={styles.updateCard}>
-            <View style={styles.userInfo}>
-              <Image
-                source={require('../assets/profile-img.jpg')}
-                style={styles.avatar}
-              />
-              <View>
-                <Text style={styles.username}>@jekob</Text>
-                <Text style={styles.time}>1h ago</Text>
+        {posts.map(post => {
+          const isAnonymous = post.anonymous === 'yes';
+          const avatarSource = isAnonymous
+            ? DEFAULT_AVATAR
+            : post.photoURL
+            ? { uri: post.photoURL }
+            : DEFAULT_AVATAR;
+
+          return (
+            <View key={post.id} style={styles.updateCard}>
+              <View style={styles.userInfo}>
+                <Image source={avatarSource} style={styles.avatar} />
+                <View>
+                  <Text style={styles.username}>
+                    {isAnonymous ? 'Anonymous' : `@${post.username}`}
+                  </Text>
+                  <Text style={styles.time}>
+                    {post.createdAt?.toDate?.().toLocaleString() || 'Just now'}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.postText}>{post.title}</Text>
+              <Text style={[styles.postText, { color: '#666', fontSize: 13 }]}>
+                {post.location}
+              </Text>
+              <Text style={styles.postText}>{post.description}</Text>
+
+              <Image source={{ uri: post.imageUrl }} style={styles.postImage} />
+
+              <View style={styles.iconRow}>
+                <TouchableOpacity onPress={() => setModalVisible(true)}>
+                  <Icon name="chatbubble-outline" size={22} style={styles.icon} />
+                </TouchableOpacity>
+                <Icon name="thumbs-up-outline" size={22} style={styles.icon} />
+                <Icon name="bookmark-outline" size={22} style={styles.icon} />
+                <Icon name="share-social-outline" size={22} style={styles.icon} />
               </View>
             </View>
-
-            <Text style={styles.postText}>
-              Increase of car theft in Colombo 7, make sure to lock your vehicles.
-            </Text>
-
-            <Image
-              source={require('../assets/news.jpg')}
-              style={styles.postImage}
-            />
-
-            <View style={styles.iconRow}>
-              <TouchableOpacity onPress={() => setModalVisible(true)}>
-                <Icon name="chatbubble-outline" size={22} style={styles.icon} />
-              </TouchableOpacity>
-              <Icon name="thumbs-up-outline" size={22} style={styles.icon} />
-              <Icon name="bookmark-outline" size={22} style={styles.icon} />
-              <Icon name="share-social-outline" size={22} style={styles.icon} />
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {/* Comments Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+      <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Comments</Text>
-
             <FlatList
               data={comments}
               keyExtractor={(item, index) => index.toString()}
@@ -114,25 +164,22 @@ const UpdatesScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
           <Icon name="home-outline" size={26} color="#000" />
         </TouchableOpacity>
-
         <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
           <Icon name="add-circle-outline" size={26} color="#000" />
         </TouchableOpacity>
-
         <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
           <Icon name="document-text-outline" size={26} color="#000" />
         </TouchableOpacity>
-
-        <View style={styles.mapWithPin}>
-          <TouchableOpacity onPress={() => navigation.navigate('Map')}>
-            <Icon name="map-outline" size={30} color="#000" />
-            <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Map')}>
+          <Icon name="map-outline" size={30} />
+          <Icon name="location-outline" size={14} style={styles.pinOnMap} />
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
+
+export default UpdatesScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -156,16 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginLeft: 90,
-  },
-  mapWithPin: {
-    position: 'relative',
-    width: 30,
-    height: 30,
-  },
-  pinOnMap: {
-    position: 'absolute',
-    top: 5,
-    right: 7,
   },
   scrollContainer: {
     paddingHorizontal: 16,
@@ -196,7 +233,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   postText: {
-    marginBottom: 10,
+    marginBottom: 6,
     fontSize: 14,
     color: '#333',
   },
@@ -226,6 +263,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  pinOnMap: {
+    position: 'absolute',
+    top: 5,
+    right: 7,
   },
   modalOverlay: {
     flex: 1,
@@ -272,6 +314,9 @@ const styles = StyleSheet.create({
     color: 'red',
     fontWeight: '600',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
-
-export default UpdatesScreen;
