@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,26 @@ const AddPostScreen: React.FC = () => {
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
+  const [username, setUsername] = useState('');
+
+  const user = auth().currentUser;
+
+  useEffect(() => {
+    if (!user) return;
+    // Fetch username from users collection
+    const unsubscribe = firestore()
+      .collection('users')
+      .doc(user.uid)
+      .onSnapshot(doc => {
+        if (doc.exists()) {
+          const data = doc.data();
+          if (data?.username) setUsername(data.username);
+        }
+      });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const pickImage = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
@@ -41,7 +61,6 @@ const AddPostScreen: React.FC = () => {
   };
 
   const handleShare = async () => {
-    const user = auth().currentUser;
     if (!user) return;
 
     if (!imageUri || !title.trim() || !location.trim() || !description.trim()) {
@@ -63,9 +82,11 @@ const AddPostScreen: React.FC = () => {
 
       await firestore().collection('posts').add({
         userId: user.uid,
+        username: username || 'unknown',
         title: title.trim(),
         location: location.trim(),
         description: description.trim(),
+        anonymous: anonymous ? 'yes' : 'no',
         imageUrl: downloadURL,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
@@ -75,6 +96,7 @@ const AddPostScreen: React.FC = () => {
       setTitle('');
       setLocation('');
       setDescription('');
+      setAnonymous(false);
       navigation.goBack();
     } catch (error) {
       console.error('Post upload failed:', error);
@@ -139,6 +161,21 @@ const AddPostScreen: React.FC = () => {
           placeholderTextColor="#999"
           editable={!uploading}
         />
+
+        {/* Anonymous Checkbox */}
+        <TouchableOpacity
+          style={styles.checkboxContainer}
+          onPress={() => setAnonymous(!anonymous)}
+          disabled={uploading}
+        >
+          <Icons
+            name={anonymous ? 'checkbox-outline' : 'square-outline'}
+            size={20}
+            color="#333"
+            style={{ marginRight: 10 }}
+          />
+          <Text style={styles.checkboxLabel}>Share Anonymously</Text>
+        </TouchableOpacity>
 
         {/* Share Button */}
         <TouchableOpacity style={styles.shareButton} onPress={handleShare} disabled={uploading}>
@@ -246,10 +283,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 15,
-    marginBottom: 25,
+    marginBottom: 15,
     fontSize: 16,
     textAlignVertical: 'top',
     elevation: 2,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: '#333',
   },
   shareButton: {
     backgroundColor: '#FF7F6C',
