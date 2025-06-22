@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Icons from 'react-native-vector-icons/Ionicons';
@@ -13,6 +16,10 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
+import RNFS from 'react-native-fs';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -20,8 +27,30 @@ const AddPostScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
+  const [username, setUsername] = useState('');
+
+  const user = auth().currentUser;
+
+  useEffect(() => {
+    if (!user) return;
+    // Fetch username from users collection
+    const unsubscribe = firestore()
+      .collection('users')
+      .doc(user.uid)
+      .onSnapshot(doc => {
+        if (doc.exists()) {
+          const data = doc.data();
+          if (data?.username) setUsername(data.username);
+        }
+      });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const pickImage = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
@@ -31,70 +60,153 @@ const AddPostScreen: React.FC = () => {
     });
   };
 
+  const handleShare = async () => {
+    if (!user) return;
+
+    if (!imageUri || !title.trim() || !location.trim() || !description.trim()) {
+      Alert.alert('Missing Fields', 'Please fill in all fields and select an image.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      const fileName = `${user.uid}_${Date.now()}.jpg`;
+      const filePath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+      await RNFS.copyFile(imageUri, filePath);
+
+      const storageRef = storage().ref(`posts/${fileName}`);
+      await storageRef.putFile(filePath);
+
+      const downloadURL = await storageRef.getDownloadURL();
+
+      await firestore().collection('posts').add({
+        userId: user.uid,
+        username: username || 'unknown',
+        title: title.trim(),
+        location: location.trim(),
+        description: description.trim(),
+        anonymous: anonymous ? 'yes' : 'no',
+        imageUrl: downloadURL,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      Alert.alert('Success', 'Post shared successfully!');
+      setImageUri(null);
+      setTitle('');
+      setLocation('');
+      setDescription('');
+      setAnonymous(false);
+      navigation.goBack();
+    } catch (error) {
+      console.error('Post upload failed:', error);
+      Alert.alert('Error', 'Failed to share post.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Icons name="arrow-back" size={24} color="#000" />
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} scrollEnabled={!uploading}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} disabled={uploading}>
+            <Icons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.titleText}>Add Post</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        {/* Upload Image */}
+        <TouchableOpacity style={styles.imageUploadBox} onPress={pickImage} disabled={uploading}>
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.uploadedImage} />
+          ) : (
+            <View style={{ alignItems: 'center' }}>
+              <Icon name="upload-cloud" size={30} color="#999" />
+              <Text style={styles.uploadText}>Upload Image</Text>
+            </View>
+          )}
         </TouchableOpacity>
-        <Text style={styles.title}>Add Post</Text>
-        <View style={{ width: 24 }} />
-      </View>
 
-      {/* Upload Image */}
-      <TouchableOpacity style={styles.imageUploadBox} onPress={pickImage}>
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.uploadedImage} />
-        ) : (
-          <View style={{ alignItems: 'center' }}>
-            <Icon name="upload-cloud" size={30} color="#999" />
-            <Text style={styles.uploadText}>Upload Image</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+        {/* Title Input */}
+        <TextInput
+          style={styles.input}
+          placeholder="Title"
+          value={title}
+          onChangeText={setTitle}
+          placeholderTextColor="#999"
+          editable={!uploading}
+        />
 
-      {/* Location Input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Location"
-        value={location}
-        onChangeText={setLocation}
-        placeholderTextColor="#999"
-      />
+        {/* Location Input */}
+        <TextInput
+          style={styles.input}
+          placeholder="Location"
+          value={location}
+          onChangeText={setLocation}
+          placeholderTextColor="#999"
+          editable={!uploading}
+        />
 
-      {/* Description Input */}
-      <TextInput
-        style={styles.textArea}
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        numberOfLines={4}
-        placeholderTextColor="#999"
-      />
+        {/* Description Input */}
+        <TextInput
+          style={styles.textArea}
+          placeholder="Description"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={4}
+          placeholderTextColor="#999"
+          editable={!uploading}
+        />
 
-      {/* Share Button */}
-      <TouchableOpacity style={styles.shareButton}>
-        <Text style={styles.shareButtonText}>Share</Text>
-      </TouchableOpacity>
+        {/* Anonymous Checkbox */}
+        <TouchableOpacity
+          style={styles.checkboxContainer}
+          onPress={() => setAnonymous(!anonymous)}
+          disabled={uploading}
+        >
+          <Icons
+            name={anonymous ? 'checkbox-outline' : 'square-outline'}
+            size={20}
+            color="#333"
+            style={{ marginRight: 10 }}
+          />
+          <Text style={styles.checkboxLabel}>Share Anonymously</Text>
+        </TouchableOpacity>
+
+        {/* Share Button */}
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare} disabled={uploading}>
+          <Text style={styles.shareButtonText}>Share</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Loading Spinner */}
+      {uploading && (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color="#FF7F6C" />
+          <Text style={{ color: '#FF7F6C', marginTop: 10 }}>Uploading Post...</Text>
+        </View>
+      )}
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} disabled={uploading}>
           <Icons name="home-outline" size={26} color="#000" />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
+        <TouchableOpacity onPress={() => navigation.navigate('AddPost')} disabled={uploading}>
           <Icons name="add-circle-outline" size={26} color="#000" />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Updates')} disabled={uploading}>
           <Icons name="document-text-outline" size={26} color="#000" />
         </TouchableOpacity>
 
         <View style={styles.mapWithPin}>
-          <TouchableOpacity onPress={() => navigation.navigate('Map')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Map')} disabled={uploading}>
             <Icons name="map-outline" size={30} color="#000" />
             <Icons name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
           </TouchableOpacity>
@@ -119,7 +231,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 30,
   },
-  title: {
+  titleText: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#000',
@@ -171,10 +283,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 15,
-    marginBottom: 25,
+    marginBottom: 15,
     fontSize: 16,
     textAlignVertical: 'top',
     elevation: 2,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: '#333',
   },
   shareButton: {
     backgroundColor: '#FF7F6C',
@@ -199,5 +320,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
 });
