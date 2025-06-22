@@ -125,7 +125,7 @@ const SettingsScreen: React.FC = () => {
           {/* Profile Picture */}
           <View style={styles.profileContainer}>
             <Image
-              source={photoURL ? { uri: photoURL } : require('../assets/profile-img.jpg')}
+              source={photoURL ? { uri: photoURL } : require('../assets/default-avatar.png')}
               style={styles.profileImage}
             />
             <TouchableOpacity
@@ -209,11 +209,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
+    marginTop: 20,
   },
   backButton: {
     padding: 4,
     backgroundColor: '#fff',
     borderRadius: 10,
+    marginTop: 20,
   },
   profileContainer: {
     alignItems: 'center',
