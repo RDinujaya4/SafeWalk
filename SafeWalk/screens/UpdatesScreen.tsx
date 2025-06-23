@@ -1,72 +1,142 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  FlatList,
-  ActivityIndicator,
+  View, Text, StyleSheet, Image, ScrollView,
+  TouchableOpacity, Modal, TextInput, FlatList,
+  ActivityIndicator
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import { RootStackParamList } from '../App';
-import firestore from '@react-native-firebase/firestore';
+
+dayjs.extend(relativeTime);
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface Post {
   id: string;
+  userId: string;
   username: string;
   photoURL?: string;
   imageUrl: string;
   title: string;
   description: string;
   location: string;
-  createdAt?: any;
+  createdAt: FirebaseFirestoreTypes.Timestamp;
   anonymous: 'yes' | 'no';
+  likes?: string[];
+  saves?: string[];
 }
 
 const DEFAULT_AVATAR = require('../assets/default-avatar.png');
 
 const UpdatesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [comment, setComment] = useState('');
-  const [comments, setComments] = useState<string[]>([]);
+  const currentUid = auth().currentUser?.uid;
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<string[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const commentsUnsubscribeRef = useRef<() => void | null>(null);
 
-  const handleAddComment = () => {
-    if (comment.trim()) {
-      setComments([...comments, comment]);
-      setComment('');
-    }
-  };
-
+  // Load posts
   useEffect(() => {
     const unsubscribe = firestore()
       .collection('posts')
       .orderBy('createdAt', 'desc')
       .onSnapshot(snapshot => {
-        const fetched: Post[] = snapshot.docs.map(doc => ({
+        const list = snapshot.docs.map(doc => ({
           id: doc.id,
-          ...(doc.data() as Omit<Post, 'id'>),
-        }));
-        setPosts(fetched);
-        setLoading(false);
+          ...(doc.data() as any),
+        })) as Post[];
+        setPosts(list);
+        setLoadingPosts(false);
       });
 
     return () => unsubscribe();
   }, []);
 
-  if (loading) {
+  const toggleLike = async (post: Post) => {
+    const uid = currentUid || '';
+    const newLikes = post.likes?.includes(uid)
+      ? firestore.FieldValue.arrayRemove(uid)
+      : firestore.FieldValue.arrayUnion(uid);
+    await firestore().collection('posts').doc(post.id).update({ likes: newLikes });
+  };
+
+  const toggleSave = async (post: Post) => {
+    const uid = currentUid || '';
+    const newSaves = post.saves?.includes(uid)
+      ? firestore.FieldValue.arrayRemove(uid)
+      : firestore.FieldValue.arrayUnion(uid);
+    await firestore().collection('posts').doc(post.id).update({ saves: newSaves });
+  };
+
+  const openComments = (postId: string) => {
+    // Cleanup previous listener
+    if (commentsUnsubscribeRef.current) {
+      commentsUnsubscribeRef.current();
+    }
+
+    setComments([]);
+    setCommentsLoading(true);
+    setActivePostId(postId);
+
+    const unsubscribe = firestore()
+      .collection('posts')
+      .doc(postId)
+      .collection('comments')
+      .orderBy('createdAt')
+      .onSnapshot(snapshot => {
+        const cmts = snapshot.docs.map(d => d.data().text as string);
+        setComments(cmts);
+        setCommentsLoading(false);
+      });
+
+    commentsUnsubscribeRef.current = unsubscribe;
+  };
+
+  const closeComments = () => {
+    setActivePostId(null);
+    if (commentsUnsubscribeRef.current) {
+      commentsUnsubscribeRef.current();
+      commentsUnsubscribeRef.current = null;
+    }
+  };
+
+  const addComment = async () => {
+    if (!commentText.trim() || !activePostId) return;
+    await firestore()
+      .collection('posts')
+      .doc(activePostId)
+      .collection('comments')
+      .add({
+        text: commentText.trim(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        userId: currentUid,
+      });
+    setCommentText('');
+  };
+
+  // Cleanup listener on unmount
+  useEffect(() => {
+    return () => {
+      if (commentsUnsubscribeRef.current) {
+        commentsUnsubscribeRef.current();
+      }
+    };
+  }, []);
+
+  if (loadingPosts) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF7F6C" />
       </View>
     );
@@ -74,105 +144,108 @@ const UpdatesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <View style={styles.backButton}>
-            <Icon name="arrow-back" size={24} color="#000" />
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.title}>Updates</Text>
-      </View>
-
-      {/* Posts */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {posts.map(post => {
-          const isAnonymous = post.anonymous === 'yes';
-          const avatarSource = isAnonymous
+        {posts.map((post) => {
+          const isAnon = post.anonymous === 'yes';
+          const liked = post.likes?.includes(currentUid!) ?? false;
+          const saved = post.saves?.includes(currentUid!) ?? false;
+          const avatarSource = isAnon
             ? DEFAULT_AVATAR
             : post.photoURL
-            ? { uri: post.photoURL }
-            : DEFAULT_AVATAR;
+              ? { uri: post.photoURL }
+              : DEFAULT_AVATAR;
 
           return (
-            <View key={post.id} style={styles.updateCard}>
-              <View style={styles.userInfo}>
+            <View key={post.id} style={styles.card}>
+              <View style={styles.userRow}>
                 <Image source={avatarSource} style={styles.avatar} />
                 <View>
                   <Text style={styles.username}>
-                    {isAnonymous ? 'Anonymous' : `@${post.username}`}
+                    {isAnon ? 'Anonymous' : `@${post.username}`}
                   </Text>
                   <Text style={styles.time}>
-                    {post.createdAt?.toDate?.().toLocaleString() || 'Just now'}
+                    {post.createdAt?.toDate
+                      ? dayjs(post.createdAt.toDate()).fromNow()
+                      : 'Just now'}
                   </Text>
                 </View>
               </View>
 
-              <Text style={styles.postText}>{post.title}</Text>
-              <Text style={[styles.postText, { color: '#666', fontSize: 13 }]}>
-                {post.location}
-              </Text>
-              <Text style={styles.postText}>{post.description}</Text>
-
-              <Image source={{ uri: post.imageUrl }} style={styles.postImage} />
+              <Text style={styles.postTitle}>{post.title}</Text>
+              <Text style={styles.postLocation}>{post.location}</Text>
+              <Text style={styles.postDesc}>{post.description}</Text>
+              <Image source={{ uri: post.imageUrl }} style={styles.postImg} />
 
               <View style={styles.iconRow}>
-                <TouchableOpacity onPress={() => setModalVisible(true)}>
-                  <Icon name="chatbubble-outline" size={22} style={styles.icon} />
+                <TouchableOpacity onPress={() => openComments(post.id)}>
+                  <Icon name="chatbubble-outline" size={22} />
                 </TouchableOpacity>
-                <Icon name="thumbs-up-outline" size={22} style={styles.icon} />
-                <Icon name="bookmark-outline" size={22} style={styles.icon} />
-                <Icon name="share-social-outline" size={22} style={styles.icon} />
+                <TouchableOpacity onPress={() => toggleLike(post)}>
+                  <Icon
+                    name={liked ? 'thumbs-up' : 'thumbs-up-outline'}
+                    size={22}
+                    color={liked ? '#248dad' : undefined}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => toggleSave(post)}>
+                  <Icon
+                    name={saved ? 'bookmark' : 'bookmark-outline'}
+                    size={22}
+                    color={saved ? '#248dad' : undefined}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { }}>
+                  <Icon name="share-social-outline" size={22} />
+                </TouchableOpacity>
               </View>
             </View>
           );
         })}
       </ScrollView>
 
-      {/* Comments Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal visible={!!activePostId} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Comments</Text>
-            <FlatList
-              data={comments}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item }) => <Text style={styles.commentItem}>• {item}</Text>}
-            />
-
+            {commentsLoading ? (
+              <ActivityIndicator size="large" color="#FF7F6C" />
+            ) : (
+              <FlatList
+                data={comments}
+                renderItem={({ item }) => <Text style={styles.commentItem}>• {item}</Text>}
+                keyExtractor={(_, idx) => idx.toString()}
+              />
+            )}
             <View style={styles.commentInputRow}>
               <TextInput
                 placeholder="Add a comment..."
-                value={comment}
-                onChangeText={setComment}
+                value={commentText}
+                onChangeText={setCommentText}
                 style={styles.commentInput}
               />
-              <TouchableOpacity onPress={handleAddComment}>
+              <TouchableOpacity onPress={addComment}>
                 <Icon name="send" size={24} color="#4ca0af" />
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>Close</Text>
+            <TouchableOpacity onPress={closeComments} style={styles.closeBtn}>
+              <Text style={styles.closeText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Icon name="home-outline" size={26} color="#000" />
+          <Icon name="home-outline" size={26} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
-          <Icon name="add-circle-outline" size={26} color="#000" />
+          <Icon name="add-circle-outline" size={26} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
-          <Icon name="document-text-outline" size={26} color="#000" />
+          <Icon name="document-text-outline" size={26} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Map')}>
           <Icon name="map-outline" size={30} />
-          <Icon name="location-outline" size={14} style={styles.pinOnMap} />
+          <Icon name="location-outline" size={14} style={styles.pin} />
         </TouchableOpacity>
       </View>
     </View>
@@ -182,141 +255,132 @@ const UpdatesScreen: React.FC = () => {
 export default UpdatesScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#eaf4f7',
-    paddingTop: 50,
+  // same as previously provided styling, including container, card, icons, modal styles, etc.
+  container: { 
+    flex:1, 
+    backgroundColor:'#eaf4f7', 
+    paddingTop:50 
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 10,
+  scrollContainer: { 
+    paddingHorizontal:16, 
+    paddingBottom:100 
   },
-  backButton: {
-    marginRight: 15,
-    padding: 4,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+  card: { 
+    backgroundColor:'#fff', 
+    borderRadius:12, 
+    padding:12, 
+    marginBottom:16 
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginLeft: 90,
+  userRow:{ 
+    flexDirection:'row', 
+    alignItems:'center', 
+    marginBottom:6 
   },
-  scrollContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
+  avatar:{ 
+    width:35,
+    height:35,
+    borderRadius:20,
+    marginRight:10 
   },
-  updateCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+  username:{ 
+    fontWeight:'bold' 
   },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
+  time:{ 
+    fontSize:12, 
+    color:'#666' 
   },
-  avatar: {
-    width: 35,
-    height: 35,
-    borderRadius: 20,
-    marginRight: 10,
+  postTitle:{ 
+    fontSize:16, 
+    fontWeight:'600', 
+    marginBottom:4, 
+    color:'#333' 
   },
-  username: {
-    fontWeight: 'bold',
+  postLocation:{ 
+    fontSize:13, 
+    color:'#666', 
+    marginBottom:4 
   },
-  time: {
-    fontSize: 12,
-    color: '#666',
+  postDesc:{ 
+    fontSize:14, 
+    color:'#333', 
+    marginBottom:8 
   },
-  postText: {
-    marginBottom: 6,
-    fontSize: 14,
-    color: '#333',
+  postImg:{ 
+    width:'100%', 
+    height:150, 
+    borderRadius:12, 
+    marginBottom:10 
   },
-  postImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 12,
-    marginBottom: 10,
-    resizeMode: 'cover',
+  iconRow:{ 
+    flexDirection:'row', 
+    justifyContent:'space-between', 
+    paddingHorizontal:10 
   },
-  iconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
+  bottomNav:{ 
+    flexDirection:'row', 
+    justifyContent:'space-around', 
+    paddingVertical:10, borderTopWidth:1, 
+    borderTopColor:'#ddd', 
+    backgroundColor:'#fff', 
+    position:'absolute', 
+    bottom:0,
+    left:0,
+    right:0 
   },
-  icon: {
-    color: '#000',
+  pin:{ 
+    position:'absolute', 
+    top:5, 
+    right:7 
   },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    backgroundColor: '#fff',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  modalOverlay:{ 
+    flex:1, 
+    justifyContent:'flex-end', 
+    backgroundColor:'rgba(0,0,0,0.5)' 
   },
-  pinOnMap: {
-    position: 'absolute',
-    top: 5,
-    right: 7,
+  modalContainer:{ 
+    backgroundColor:'#f9f9f9', 
+    padding:16, 
+    borderTopLeftRadius:20, 
+    borderTopRightRadius:20, 
+    maxHeight:'70%' 
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  commentInputRow:{ 
+    flexDirection:'row', 
+    alignItems:'center', 
+    marginTop:12 
   },
-  modalContainer: {
-    backgroundColor: '#f9f9f9',
-    padding: 16,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
+  commentInput:{ 
+    flex:1, 
+    borderWidth:1,
+    borderColor:'#ccc', 
+    borderRadius:20, 
+    paddingHorizontal:12, 
+    marginRight:10, 
+    height:40, 
+    backgroundColor:'#fff' 
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
+  commentItem:{ 
+    paddingVertical:4, 
+    borderBottomWidth:0.5, 
+    borderBottomColor:'#ccc' 
   },
-  commentItem: {
-    paddingVertical: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#ccc',
+  closeBtn:{ 
+    alignSelf:'center', 
+    marginTop:10 
   },
-  commentInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
+  closeText:{ 
+    color:'red', 
+    fontWeight:'600' 
   },
-  commentInput: {
-    flex: 1,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    marginRight: 10,
-    height: 40,
-    backgroundColor: '#fff',
+  centered:{ 
+    flex:1, 
+    justifyContent:'center', 
+    alignItems:'center' 
   },
-  closeBtn: {
-    alignSelf: 'center',
-    marginTop: 10,
-  },
-  closeBtnText: {
-    color: 'red',
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  loadingContainer:{ 
+    flex:1, 
+    justifyContent:'center', 
+    alignItems:'center' 
   },
 });
+
