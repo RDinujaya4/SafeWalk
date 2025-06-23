@@ -40,15 +40,15 @@ const HomeScreen: React.FC = () => {
 
     // 1. Get user profile photo
     const unsubscribeUser = firestore()
-  .collection('users')
-  .doc(user.uid)
-  .onSnapshot((snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      if (data?.photoURL) {
-        setProfilePic(data.photoURL);
+    .collection('users')
+    .doc(user.uid)
+    .onSnapshot((snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data?.photoURL) {
+          setProfilePic(data.photoURL);
+        }
       }
-    }
   });
     // 2. Fetch latest posts (exclude anonymous & own)
     const unsubscribePosts = firestore()
