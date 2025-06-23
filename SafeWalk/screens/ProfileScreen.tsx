@@ -118,7 +118,7 @@ const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={() => navigation.navigate('AddPost')}
+            onPress={() => navigation.navigate('SavedPosts')}
           >
             <Text style={styles.secondaryButtonText}>Saved Posts</Text>
           </TouchableOpacity>

@@ -144,6 +144,12 @@ const UpdatesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+       <View style={styles.header}>
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-back" size={24} />
+              </TouchableOpacity>
+              <Text style={styles.title}>Updates</Text>
+            </View>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {posts.map((post) => {
           const isAnon = post.anonymous === 'yes';
@@ -260,6 +266,25 @@ const styles = StyleSheet.create({
     flex:1, 
     backgroundColor:'#eaf4f7', 
     paddingTop:50 
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 25,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 90,
+    marginBottom: 20,
+  },
+  backButton: {
+    marginRight: 15,
+    padding: 4,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginBottom: 20,
   },
   scrollContainer: { 
     paddingHorizontal:16, 

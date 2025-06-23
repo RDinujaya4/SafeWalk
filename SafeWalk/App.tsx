@@ -16,6 +16,7 @@ import SafetyMapScreen from './screens/SafetyMapScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
 import MapScreen from './screens/MapScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import SavedPostsScreen from './screens/SavedPostsScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -32,6 +33,7 @@ export type RootStackParamList = {
   Map: undefined;
   AdminDashboard: undefined;
   Settings: undefined;
+  SavedPosts: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -54,6 +56,7 @@ const App = () => {
         <Stack.Screen name="Map" component={MapScreen} />
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
