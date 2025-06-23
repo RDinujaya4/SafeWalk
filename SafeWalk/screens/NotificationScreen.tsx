@@ -1,31 +1,74 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
+
+interface Notification {
+  id: string;
+  toUserId: string;
+  fromUserId: string;
+  fromUsername: string;
+  type: 'new_post';
+  postTitle: string;
+  createdAt: FirebaseFirestoreTypes.Timestamp;
+  read: boolean;
+}
 
 const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const currentUid = auth().currentUser?.uid;
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: 'You just entered danger area, Be aware of thieves', time: '13.22', isNew: true },
-    { id: 2, message: 'You just entered danger area, Be aware of thieves', time: '13.22', isNew: true },
-    { id: 3, message: 'You just entered danger area, Be aware of thieves', time: '13.22', isNew: false },
-    { id: 4, message: 'You just entered danger area, Be aware of thieves', time: '13.22', isNew: false },
-  ]);
+  useEffect(() => {
+    if (!currentUid) return;
 
-  const handleClear = () => {
+    const unsubscribe = firestore()
+      .collection('notifications')
+      .where('toUserId', '==', currentUid)
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        if (!snapshot || snapshot.empty) {
+          setNotifications([]);
+          setLoading(false);
+          return;
+        }
+
+        const list = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Notification, 'id'>),
+        }));
+        setNotifications(list);
+        setLoading(false);
+      }, error => {
+        console.error('Error loading notifications:', error);
+        setLoading(false);
+      });
+
+    return () => unsubscribe();
+  }, [currentUid]);
+
+  const handleClear = async () => {
+    const batch = firestore().batch();
+    notifications.forEach(notif => {
+      const ref = firestore().collection('notifications').doc(notif.id);
+      batch.delete(ref);
+    });
+    await batch.commit();
     setNotifications([]);
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Icon name="arrow-back" size={24} color="#000" />
@@ -33,20 +76,27 @@ const NotificationsScreen: React.FC = () => {
         <Text style={styles.title}>Notifications</Text>
       </View>
 
-      {/* Notification List */}
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {notifications.map((item) => (
-          <View key={item.id} style={styles.notificationBox}>
-            <Text style={styles.message}>{item.message}</Text>
-            <View style={styles.timeRow}>
-              <Text style={styles.time}>{item.time}</Text>
-              {item.isNew && <View style={styles.redDot} />}
+      {loading ? (
+        <ActivityIndicator size="large" color="#FF6B5C" style={{ marginTop: 100 }} />
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {notifications.map((item) => (
+            <View key={item.id} style={styles.notificationBox}>
+              <Text style={styles.message}>
+                {item.fromUsername === 'Anonymous'
+                  ? 'An anonymous user'
+                  : `@${item.fromUsername}`}{' '}
+                added a new post: {item.postTitle}
+              </Text>
+              <View style={styles.timeRow}>
+                <Text style={styles.time}>{dayjs(item.createdAt.toDate()).fromNow()}</Text>
+                {!item.read && <View style={styles.redDot} />}
+              </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
 
-      {/* Clear Button */}
       <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
         <Text style={styles.clearButtonText}>Clear</Text>
       </TouchableOpacity>
