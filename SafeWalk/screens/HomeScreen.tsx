@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,76 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
-// Define navigation prop type for navigating from Home to any screen
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+interface Post {
+  id: string;
+  username: string;
+  imageUrl: string;
+  title: string;
+  userId: string;
+  anonymous: 'yes' | 'no';
+}
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const [profilePic, setProfilePic] = useState('');
+  const [recentPosts, setRecentPosts] = useState<Post[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const user = auth().currentUser;
+
+  useEffect(() => {
+    if (!user) return;
+
+    // 1. Get user profile photo
+    const unsubscribeUser = firestore()
+  .collection('users')
+  .doc(user.uid)
+  .onSnapshot((snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      if (data?.photoURL) {
+        setProfilePic(data.photoURL);
+      }
+    }
+  });
+    // 2. Fetch latest posts (exclude anonymous & own)
+    const unsubscribePosts = firestore()
+      .collection('posts')
+      .orderBy('createdAt', 'desc')
+      .limit(5)
+      .onSnapshot(snapshot => {
+        const posts = snapshot.docs
+          .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
+          .filter(p => p.anonymous === 'no' && p.userId !== user.uid) as Post[];
+        setRecentPosts(posts);
+      });
+
+    // 3. Count unread notifications
+    const unsubscribeNotifications = firestore()
+      .collection('notifications')
+      .where('toUserId', '==', user.uid)
+      .where('read', '==', false)
+      .onSnapshot(snapshot => {
+        setUnreadCount(snapshot.size);
+      });
+
+    return () => {
+      unsubscribeUser();
+      unsubscribePosts();
+      unsubscribeNotifications();
+    };
+  }, [user]);
 
   return (
     <View style={styles.container}>
@@ -25,7 +84,7 @@ const HomeScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Image
-            source={require('../assets/default-avatar.png')}
+            source={profilePic ? { uri: profilePic } : require('../assets/default-avatar.png')}
             style={styles.profileImage}
           />
         </TouchableOpacity>
@@ -33,7 +92,11 @@ const HomeScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
           <View style={styles.notificationBox}>
             <Icon name="notifications-outline" size={27} color="#000" />
-            <View style={styles.notificationDot} />
+            {unreadCount > 0 && (
+              <View style={styles.notificationDot}>
+                <Text style={styles.notificationText}>{unreadCount}</Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       </View>
@@ -47,14 +110,24 @@ const HomeScreen: React.FC = () => {
       {/* Recent Updates */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent Updates</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
-           <Text style={styles.viewAll}>View All</Text>
-        </TouchableOpacity>      
+        <TouchableOpacity onPress={() => navigation.navigate('Updates', {})}>
+          <Text style={styles.viewAll}>View All</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-        <Image source={require('../assets/update1.png')} style={styles.updateImage} />
-        <Image source={require('../assets/update2.png')} style={styles.updateImage} />
+        {recentPosts.length === 0 ? (
+          <ActivityIndicator color="#999" style={{ marginTop: 10 }} />
+        ) : (
+          recentPosts.map(post => (
+            <TouchableOpacity
+              key={post.id}
+              onPress={() => navigation.navigate('Updates', { postId: post.id })}
+            >
+              <Image source={{ uri: post.imageUrl }} style={styles.updateImage} />
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       {/* Safety Map */}
@@ -66,16 +139,12 @@ const HomeScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
           <Icon name="home-outline" size={26} color="#000" />
         </TouchableOpacity>
-    
-        {/* Updated: Touchable icon to navigate to AddPost screen */}
         <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
           <Icon name="add-circle-outline" size={26} color="#000" />
         </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Updates', {})}>
           <Icon name="document-text-outline" size={26} color="#000" />
         </TouchableOpacity>
-  
         <View style={styles.mapWithPin}>
           <TouchableOpacity onPress={() => navigation.navigate('Map')}>
             <Icon name="map-outline" size={30} color="#000" />
@@ -88,6 +157,7 @@ const HomeScreen: React.FC = () => {
 };
 
 export default HomeScreen;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -116,6 +186,41 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 13,
   },
+  notificationDot: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  notificationCount: {
+  color: 'white',
+  fontSize: 10,
+  fontWeight: 'bold',
+  textAlign: 'center',
+},
+updateCard: {
+  width: 180,
+  marginRight: 15,
+},
+postTitle: {
+  fontWeight: 'bold',
+  fontSize: 14,
+  marginTop: 6,
+},
+postBy: {
+  fontSize: 12,
+  color: '#666',
+},
   notificationBox: {
     backgroundColor: '#fff',
     padding: 6,
@@ -126,15 +231,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 2,
     position: 'relative',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: -1,
-    right: -1,
-    width: 8,
-    height: 8,
-    backgroundColor: 'red',
-    borderRadius: 4,
   },
   searchBar: {
     flexDirection: 'row',
