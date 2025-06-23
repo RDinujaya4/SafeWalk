@@ -87,7 +87,7 @@ const AddPostScreen: React.FC = () => {
     const downloadURL = await storageRef.getDownloadURL();
 
     // Save post to Firestore
-    await firestore().collection('posts').add({
+    const postRef = await firestore().collection('posts').add({
       userId: user.uid,
       username: username || 'unknown',
       title: title.trim(),
@@ -99,19 +99,40 @@ const AddPostScreen: React.FC = () => {
       createdAt: firestore.FieldValue.serverTimestamp(),
     });
 
-    Alert.alert('Success', 'Post shared successfully!');
-    setImageUri(null);
-    setTitle('');
-    setLocation('');
-    setDescription('');
-    setAnonymous(false);
-    navigation.goBack();
+    // Send a notification to all users except the sender
+    const usersSnapshot = await firestore().collection('users').get();
+    const batch = firestore().batch();
+
+    usersSnapshot.forEach(doc => {
+      if (doc.id !== user.uid) {
+        const notifRef = firestore().collection('notifications').doc();
+        batch.set(notifRef, {
+          toUserId: doc.id,
+          fromUserId: user.uid,
+          fromUsername: anonymous ? 'Anonymous' : username,
+          type: 'new_post',
+          postTitle: title.trim(),
+          createdAt: firestore.FieldValue.serverTimestamp(),
+          read: false,
+        });
+      }
+    });
+
+    await batch.commit();
+
+      Alert.alert('Success', 'Post shared successfully!');
+      setImageUri(null);
+      setTitle('');
+      setLocation('');
+      setDescription('');
+      setAnonymous(false);
+      navigation.goBack();
   } catch (error) {
-    console.error('Post upload failed:', error);
-    Alert.alert('Error', 'Failed to share post.');
-  } finally {
-    setUploading(false);
-  }
+      console.error('Post upload failed:', error);
+      Alert.alert('Error', 'Failed to share post.');
+    } finally {
+      setUploading(false);
+      }
 };
 
 
