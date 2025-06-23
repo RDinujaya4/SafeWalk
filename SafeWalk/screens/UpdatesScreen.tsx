@@ -246,7 +246,7 @@ const UpdatesScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
           <Icon name="add-circle-outline" size={26} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Updates', {})}>
           <Icon name="document-text-outline" size={26} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Map')}>

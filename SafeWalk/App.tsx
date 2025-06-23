@@ -27,7 +27,7 @@ export type RootStackParamList = {
   AddPost: undefined;
   Notifications: undefined;
   Profile: undefined;
-  Updates: undefined;
+  Updates: { postId?: string };
   UpdateMap: undefined;
   SafetyMap: undefined;
   Map: undefined;
