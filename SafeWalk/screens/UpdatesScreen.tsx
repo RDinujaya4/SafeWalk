@@ -41,6 +41,10 @@ const UpdatesScreen: React.FC = () => {
   const route = useRoute<UpdatesRouteProp>();
   const highlightedPostId = route.params?.postId ?? null;
 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const postRefs = useRef<Record<string, number>>({});
+
+
   const currentUid = auth().currentUser?.uid;
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -63,6 +67,16 @@ const UpdatesScreen: React.FC = () => {
         setPosts(list);
         setLoadingPosts(false);
       });
+
+      setTimeout(() => {
+  if (highlightedPostId && postRefs.current[highlightedPostId]) {
+    scrollViewRef.current?.scrollTo({
+      y: postRefs.current[highlightedPostId] - 10,
+      animated: true,
+    });
+  }
+}, 500); // Delay to allow layout to render
+
 
     return () => unsubscribe();
   }, []);
@@ -149,7 +163,7 @@ const UpdatesScreen: React.FC = () => {
         <Text style={styles.title}>Updates</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer}>
         {posts.map((post) => {
           const isAnon = post.anonymous === 'yes';
           const liked = post.likes?.includes(currentUid!) ?? false;
@@ -167,8 +181,11 @@ const UpdatesScreen: React.FC = () => {
               key={post.id}
               style={[
                 styles.card,
-                isHighlighted && { borderColor: '#248dad', borderWidth: 2 },
+                highlightedPostId === post.id && styles.highlightedCard, // highlight style
               ]}
+              onLayout={(event) => {
+                postRefs.current[post.id] = event.nativeEvent.layout.y;
+              }}
             >
               <View style={styles.userRow}>
                 <Image source={avatarSource} style={styles.avatar} />
