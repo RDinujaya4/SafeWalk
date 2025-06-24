@@ -7,16 +7,18 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import { Animated } from 'react-native';
 import { RootStackParamList } from '../App';
 
 dayjs.extend(relativeTime);
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type UpdatesRouteProp = RouteProp<RootStackParamList, 'Updates'>;
 
 interface Post {
   id: string;
@@ -37,6 +39,13 @@ const DEFAULT_AVATAR = require('../assets/default-avatar.png');
 
 const UpdatesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<UpdatesRouteProp>();
+  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(route.params?.postId ?? null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const postRefs = useRef<Record<string, number>>({});
+
+
   const currentUid = auth().currentUser?.uid;
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -60,8 +69,40 @@ const UpdatesScreen: React.FC = () => {
         setLoadingPosts(false);
       });
 
+      setTimeout(() => {
+        if (highlightedPostId && postRefs.current[highlightedPostId]) {
+          scrollViewRef.current?.scrollTo({
+            y: postRefs.current[highlightedPostId] - 10,
+            animated: true,
+          });
+        }
+      }, 500); // Delay to allow layout to render
+
+
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (highlightedPostId) {
+      const timer = setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }).start(() => {
+          setHighlightedPostId(null); // remove highlight after fade
+          fadeAnim.setValue(1); // reset for future highlights
+        });
+      }, 2500); // wait 2.5 seconds before fading out
+
+      return () => {
+        clearTimeout(timer);
+        fadeAnim.setValue(1); // reset if user navigates away quickly
+      };
+    }
+  }, [highlightedPostId]);
+
+
 
   const toggleLike = async (post: Post) => {
     const uid = currentUid || '';
@@ -80,10 +121,7 @@ const UpdatesScreen: React.FC = () => {
   };
 
   const openComments = (postId: string) => {
-    // Cleanup previous listener
-    if (commentsUnsubscribeRef.current) {
-      commentsUnsubscribeRef.current();
-    }
+    if (commentsUnsubscribeRef.current) commentsUnsubscribeRef.current();
 
     setComments([]);
     setCommentsLoading(true);
@@ -125,12 +163,9 @@ const UpdatesScreen: React.FC = () => {
     setCommentText('');
   };
 
-  // Cleanup listener on unmount
   useEffect(() => {
     return () => {
-      if (commentsUnsubscribeRef.current) {
-        commentsUnsubscribeRef.current();
-      }
+      if (commentsUnsubscribeRef.current) commentsUnsubscribeRef.current();
     };
   }, []);
 
@@ -144,13 +179,14 @@ const UpdatesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-       <View style={styles.header}>
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Icon name="arrow-back" size={24} />
-              </TouchableOpacity>
-              <Text style={styles.title}>Updates</Text>
-            </View>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Icon name="arrow-back" size={24} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Updates</Text>
+      </View>
+
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer}>
         {posts.map((post) => {
           const isAnon = post.anonymous === 'yes';
           const liked = post.likes?.includes(currentUid!) ?? false;
@@ -161,8 +197,21 @@ const UpdatesScreen: React.FC = () => {
               ? { uri: post.photoURL }
               : DEFAULT_AVATAR;
 
+          const isHighlighted = highlightedPostId === post.id;
+          const CardComponent = isHighlighted ? Animated.View : View;
+
           return (
-            <View key={post.id} style={styles.card}>
+            <CardComponent
+              key={post.id}
+              style={[
+                styles.card,
+                isHighlighted && styles.highlightedCard,
+                isHighlighted && { opacity: fadeAnim },
+              ]}
+              onLayout={(event) => {
+                postRefs.current[post.id] = event.nativeEvent.layout.y;
+              }}
+            >
               <View style={styles.userRow}>
                 <Image source={avatarSource} style={styles.avatar} />
                 <View>
@@ -204,11 +253,12 @@ const UpdatesScreen: React.FC = () => {
                   <Icon name="share-social-outline" size={22} />
                 </TouchableOpacity>
               </View>
-            </View>
+            </CardComponent>
           );
         })}
       </ScrollView>
 
+      {/* Comments Modal */}
       <Modal visible={!!activePostId} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -239,6 +289,7 @@ const UpdatesScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
           <Icon name="home-outline" size={26} />
@@ -260,6 +311,7 @@ const UpdatesScreen: React.FC = () => {
 
 export default UpdatesScreen;
 
+
 const styles = StyleSheet.create({
   // same as previously provided styling, including container, card, icons, modal styles, etc.
   container: { 
@@ -279,6 +331,10 @@ const styles = StyleSheet.create({
     marginLeft: 90,
     marginBottom: 20,
   },
+  highlightedCard: {
+  borderWidth: 2,
+  borderColor: '#4ca0af',
+},
   backButton: {
     marginRight: 15,
     padding: 4,
