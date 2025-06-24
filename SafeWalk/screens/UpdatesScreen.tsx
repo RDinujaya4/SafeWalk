@@ -12,6 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import { Animated } from 'react-native';
 import { RootStackParamList } from '../App';
 
 dayjs.extend(relativeTime);
@@ -39,8 +40,8 @@ const DEFAULT_AVATAR = require('../assets/default-avatar.png');
 const UpdatesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<UpdatesRouteProp>();
-  const highlightedPostId = route.params?.postId ?? null;
-
+  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(route.params?.postId ?? null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const postRefs = useRef<Record<string, number>>({});
 
@@ -69,17 +70,39 @@ const UpdatesScreen: React.FC = () => {
       });
 
       setTimeout(() => {
-  if (highlightedPostId && postRefs.current[highlightedPostId]) {
-    scrollViewRef.current?.scrollTo({
-      y: postRefs.current[highlightedPostId] - 10,
-      animated: true,
-    });
-  }
-}, 500); // Delay to allow layout to render
+        if (highlightedPostId && postRefs.current[highlightedPostId]) {
+          scrollViewRef.current?.scrollTo({
+            y: postRefs.current[highlightedPostId] - 10,
+            animated: true,
+          });
+        }
+      }, 500); // Delay to allow layout to render
 
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (highlightedPostId) {
+      const timer = setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }).start(() => {
+          setHighlightedPostId(null); // remove highlight after fade
+          fadeAnim.setValue(1); // reset for future highlights
+        });
+      }, 2500); // wait 2.5 seconds before fading out
+
+      return () => {
+        clearTimeout(timer);
+        fadeAnim.setValue(1); // reset if user navigates away quickly
+      };
+    }
+  }, [highlightedPostId]);
+
+
 
   const toggleLike = async (post: Post) => {
     const uid = currentUid || '';
@@ -175,13 +198,15 @@ const UpdatesScreen: React.FC = () => {
               : DEFAULT_AVATAR;
 
           const isHighlighted = highlightedPostId === post.id;
+          const CardComponent = isHighlighted ? Animated.View : View;
 
           return (
-            <View
+            <CardComponent
               key={post.id}
               style={[
                 styles.card,
-                highlightedPostId === post.id && styles.highlightedCard, // highlight style
+                isHighlighted && styles.highlightedCard,
+                isHighlighted && { opacity: fadeAnim },
               ]}
               onLayout={(event) => {
                 postRefs.current[post.id] = event.nativeEvent.layout.y;
@@ -228,7 +253,7 @@ const UpdatesScreen: React.FC = () => {
                   <Icon name="share-social-outline" size={22} />
                 </TouchableOpacity>
               </View>
-            </View>
+            </CardComponent>
           );
         })}
       </ScrollView>
@@ -308,7 +333,7 @@ const styles = StyleSheet.create({
   },
   highlightedCard: {
   borderWidth: 2,
-  borderColor: '#248dad',
+  borderColor: '#4ca0af',
 },
   backButton: {
     marginRight: 15,
