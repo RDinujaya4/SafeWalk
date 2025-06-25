@@ -245,14 +245,14 @@ const UpdatesScreen: React.FC = () => {
                   <Icon
                     name={liked ? 'thumbs-up' : 'thumbs-up-outline'}
                     size={22}
-                    color={liked ? '#248dad' : undefined}
+                    color={liked ? '#C95792' : undefined}
                   />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => toggleSave(post)}>
                   <Icon
                     name={saved ? 'bookmark' : 'bookmark-outline'}
                     size={22}
-                    color={saved ? '#248dad' : undefined}
+                    color={saved ? '#7C4585' : undefined}
                   />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { }}>

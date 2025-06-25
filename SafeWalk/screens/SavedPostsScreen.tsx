@@ -159,10 +159,10 @@ const SavedPostsScreen: React.FC = () => {
             <Icon name="chatbubble-outline" size={22} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => toggleLike(post)}>
-            <Icon name={liked ? 'thumbs-up' : 'thumbs-up-outline'} size={22} color={liked ? '#248dad' : undefined} />
+            <Icon name={liked ? 'thumbs-up' : 'thumbs-up-outline'} size={22} color={liked ? '#C95792' : undefined} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => toggleSave(post)}>
-            <Icon name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#248dad' : undefined} />
+            <Icon name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#7C4585' : undefined} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => { /* Share logic here */ }}>
             <Icon name="share-social-outline" size={22} />
