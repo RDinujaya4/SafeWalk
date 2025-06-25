@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, Image, TouchableOpacity,
-  FlatList, TextInput, Modal, ActivityIndicator
+  FlatList, TextInput, Modal, ActivityIndicator, Switch
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
@@ -14,6 +14,8 @@ import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import { RootStackParamList } from '../App';
 
 dayjs.extend(relativeTime);
+
+const DEFAULT_AVATAR = require('../assets/default-avatar.png');
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 interface Post {
@@ -29,9 +31,18 @@ interface Post {
   anonymous: 'yes' | 'no';
   likes?: string[];
   saves?: string[];
+  commentsCount?: number;
 }
 
-const DEFAULT_AVATAR = require('../assets/default-avatar.png');
+interface Comment {
+  id: string;
+  userId: string;
+  username?: string;
+  photoURL?: string;
+  anonymous: 'yes' | 'no';
+  text: string;
+  createdAt: FirebaseFirestoreTypes.Timestamp;
+}
 
 const SavedPostsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -40,42 +51,57 @@ const SavedPostsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<string[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
-  const [commentUnsubscribe, setCommentUnsubscribe] = useState<(() => void) | null>(null);
+  const [anonymousComment, setAnonymousComment] = useState(false);
+  const commentsUnsubscribeRef = useRef<(() => void) | null>(null);
+  const commentListenersRef = useRef<Record<string, () => void>>({});
 
   useEffect(() => {
-  if (!currentUid) return;
+    if (!currentUid) return;
 
-  const unsubscribe = firestore()
-    .collection('posts')
-    .where('saves', 'array-contains', currentUid)
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(
-      snapshot => {
-        if (!snapshot || !snapshot.docs) {
-          setPosts([]);
-          setLoading(false);
-          return;
-        }
-
+    const unsubscribe = firestore()
+      .collection('posts')
+      .where('saves', 'array-contains', currentUid)
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
         const list = snapshot.docs.map(doc => ({
           id: doc.id,
           ...(doc.data() as any),
+          likes: doc.data().likes || [],
+          saves: doc.data().saves || [],
+          commentsCount: 0
         })) as Post[];
+
+        // Reset comment listeners
+        Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
+        commentListenersRef.current = {};
+
+        list.forEach(post => {
+          const unsub = firestore()
+            .collection('posts')
+            .doc(post.id)
+            .collection('comments')
+            .onSnapshot(commentSnap => {
+              const index = list.findIndex(p => p.id === post.id);
+              if (index !== -1) {
+                list[index].commentsCount = commentSnap.size;
+                setPosts([...list]);
+              }
+            });
+
+          commentListenersRef.current[post.id] = unsub;
+        });
 
         setPosts(list);
         setLoading(false);
-      },
-      error => {
-        console.error('Error fetching saved posts:', error);
-        setLoading(false);
-      }
-    );
+      });
 
-  return () => unsubscribe();
-}, [currentUid]);
-
+    return () => {
+      unsubscribe();
+      Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
+    };
+  }, [currentUid]);
 
   const toggleLike = async (post: Post) => {
     const uid = currentUid || '';
@@ -93,30 +119,38 @@ const SavedPostsScreen: React.FC = () => {
     await firestore().collection('posts').doc(post.id).update({ saves: newSaves });
   };
 
-  const openComments = (postId: string) => {
-    setCommentText('');
+  const openComments = async (postId: string) => {
+    if (commentsUnsubscribeRef.current) commentsUnsubscribeRef.current();
     setComments([]);
     setCommentsLoading(true);
     setActivePostId(postId);
-
-    if (commentUnsubscribe) commentUnsubscribe();
-
     const unsubscribe = firestore()
       .collection('posts')
       .doc(postId)
       .collection('comments')
-      .orderBy('createdAt')
+      .orderBy('createdAt', 'desc')
       .onSnapshot(snapshot => {
-        const cmts = snapshot.docs.map(d => d.data().text as string);
+        const cmts = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })) as Comment[];
         setComments(cmts);
         setCommentsLoading(false);
       });
-
-    setCommentUnsubscribe(() => unsubscribe);
+    commentsUnsubscribeRef.current = unsubscribe;
+  };
+  const closeComments = () => {
+    setActivePostId(null);
+    if (commentsUnsubscribeRef.current) {
+      commentsUnsubscribeRef.current();
+      commentsUnsubscribeRef.current = null;
+    }
   };
 
   const addComment = async () => {
     if (!commentText.trim() || !activePostId) return;
+    const docUser = await firestore().collection('users').doc(currentUid!).get();
+    const dataUser = docUser.data() || {};
+    const commentUsername = anonymousComment ? 'Anonymous' : dataUser.username || 'Unknown';
+    const commentPhotoURL = anonymousComment ? '' : (dataUser.photoURL || '');
+
     await firestore()
       .collection('posts')
       .doc(activePostId)
@@ -125,8 +159,22 @@ const SavedPostsScreen: React.FC = () => {
         text: commentText.trim(),
         createdAt: firestore.FieldValue.serverTimestamp(),
         userId: currentUid,
+        username: commentUsername,
+        photoURL: commentPhotoURL,
+        anonymous: anonymousComment ? 'yes' : 'no',
       });
+
     setCommentText('');
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!activePostId) return;
+    await firestore()
+      .collection('posts')
+      .doc(activePostId)
+      .collection('comments')
+      .doc(commentId)
+      .delete();
   };
 
   const renderPost = ({ item: post }: { item: Post }) => {
@@ -140,12 +188,8 @@ const SavedPostsScreen: React.FC = () => {
         <View style={styles.userRow}>
           <Image source={avatarSource} style={styles.avatar} />
           <View>
-            <Text style={styles.username}>
-              {isAnon ? 'Anonymous' : `@${post.username}`}
-            </Text>
-            <Text style={styles.time}>
-              {post.createdAt?.toDate ? dayjs(post.createdAt.toDate()).fromNow() : 'Just now'}
-            </Text>
+            <Text style={styles.username}>{isAnon ? 'Anonymous' : `@${post.username}`}</Text>
+            <Text style={styles.time}>{post.createdAt?.toDate ? dayjs(post.createdAt.toDate()).fromNow() : 'Just now'}</Text>
           </View>
         </View>
 
@@ -155,18 +199,24 @@ const SavedPostsScreen: React.FC = () => {
         <Image source={{ uri: post.imageUrl }} style={styles.postImg} />
 
         <View style={styles.iconRow}>
-          <TouchableOpacity onPress={() => openComments(post.id)}>
-            <Icon name="chatbubble-outline" size={22} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleLike(post)}>
-            <Icon name={liked ? 'thumbs-up' : 'thumbs-up-outline'} size={22} color={liked ? '#C95792' : undefined} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleSave(post)}>
-            <Icon name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#7C4585' : undefined} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => { /* Share logic here */ }}>
-            <Icon name="share-social-outline" size={22} />
-          </TouchableOpacity>
+          <View style={styles.iconWithCount}>
+            <Text style={styles.countText}>{post.commentsCount ?? 0}</Text>
+            <TouchableOpacity onPress={() => openComments(post.id)}>
+              <Icon name="chatbubble-outline" size={22} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.iconWithCount}>
+            <Text style={styles.countText}>{post.likes?.length ?? 0}</Text>
+            <TouchableOpacity onPress={() => toggleLike(post)}>
+              <Icon name={liked ? 'thumbs-up' : 'thumbs-up-outline'} size={22} color={liked ? '#C95792' : undefined} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.iconWithCount}>
+            <Text style={styles.countText}>{post.saves?.length ?? 0}</Text>
+            <TouchableOpacity onPress={() => toggleSave(post)}>
+              <Icon name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#7C4585' : undefined} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -174,7 +224,6 @@ const SavedPostsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} />
@@ -194,9 +243,7 @@ const SavedPostsScreen: React.FC = () => {
           renderItem={renderPost}
         />
       )}
-
-      {/* Comments Modal */}
-      <Modal visible={!!activePostId} transparent animationType="slide">
+     <Modal visible={!!activePostId} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             {commentsLoading ? (
@@ -204,10 +251,36 @@ const SavedPostsScreen: React.FC = () => {
             ) : (
               <FlatList
                 data={comments}
-                renderItem={({ item }) => <Text style={styles.commentItem}>• {item}</Text>}
-                keyExtractor={(_, idx) => idx.toString()}
+                renderItem={({ item }) => (
+                  <View style={styles.commentItem}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Image
+                        source={item.anonymous === 'yes' || !item.photoURL ? DEFAULT_AVATAR : { uri: item.photoURL }}
+                        style={styles.avatar}
+                      />
+                      <View style={{ marginLeft: 10, flex: 1 }}>
+                        <Text style={styles.username}>{item.anonymous === 'yes' ? 'Anonymous' : `@${item.username}`}</Text>
+                        <Text style={styles.time}>{item.createdAt?.toDate ? dayjs(item.createdAt.toDate()).fromNow() : 'Just now'}</Text>
+                      </View>
+                      {item.userId === currentUid && (
+                        <TouchableOpacity onPress={() => deleteComment(item.id)}>
+                          <Icon name="trash-outline" size={20} color="#888" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <Text style={{ marginTop: 4 }}>{item.text}</Text>
+                  </View>
+                )}
+                keyExtractor={item => item.id}
               />
             )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+              <Switch
+                value={anonymousComment}
+                onValueChange={setAnonymousComment}
+              />
+              <Text style={{ marginLeft: 6 }}>Post anonymously</Text>
+            </View>
             <View style={styles.commentInputRow}>
               <TextInput
                 placeholder="Add a comment..."
@@ -219,7 +292,7 @@ const SavedPostsScreen: React.FC = () => {
                 <Icon name="send" size={24} color="#4ca0af" />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => setActivePostId(null)} style={styles.closeBtn}>
+            <TouchableOpacity onPress={closeComments} style={styles.closeBtn}>
               <Text style={styles.closeText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -232,7 +305,8 @@ const SavedPostsScreen: React.FC = () => {
 export default SavedPostsScreen;
 
 const styles = StyleSheet.create({
-  container: { 
+  // ... keep your existing styles ...
+   container: { 
     flex: 1, 
     backgroundColor: '#eaf4f7', 
     paddingTop: 50 
@@ -356,4 +430,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center' 
   },
+  iconWithCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  countText: {
+    fontSize: 13,
+    color: '#555',
+    marginRight: 2,
+  },
+  // ...
 });

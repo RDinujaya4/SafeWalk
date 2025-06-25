@@ -386,9 +386,7 @@ const UpdatesScreen: React.FC = () => {
 
 export default UpdatesScreen;
 
-
 const styles = StyleSheet.create({
-  // ... keep all your existing styles untouched ...
    container: { 
     flex:1, 
     backgroundColor:'#eaf4f7', 
@@ -407,9 +405,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   highlightedCard: {
-  borderWidth: 2,
-  borderColor: '#4ca0af',
-},
+    borderWidth: 2,
+    borderColor: '#4ca0af',
+  },
   backButton: {
     marginRight: 15,
     padding: 4,
@@ -539,14 +537,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc'
   },
   iconWithCount: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 4,
-},
-countText: {
-  fontSize: 13,
-  color: '#555',
-  marginRight: 2,
-},
- // other styles remain as you provided
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  countText: {
+    fontSize: 13,
+    color: '#555',
+    marginRight: 2,
+  },
 });
