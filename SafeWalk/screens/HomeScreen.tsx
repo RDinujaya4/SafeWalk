@@ -80,6 +80,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.TopTitle}>SafeWalk</Text>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F1F6F9',
-    paddingTop: 40,
+    paddingTop: 20,
     paddingHorizontal: 20,
   },
   header: {
@@ -203,24 +204,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   notificationCount: {
-  color: 'white',
-  fontSize: 10,
-  fontWeight: 'bold',
-  textAlign: 'center',
-},
-updateCard: {
-  width: 180,
-  marginRight: 15,
-},
-postTitle: {
-  fontWeight: 'bold',
-  fontSize: 14,
-  marginTop: 6,
-},
-postBy: {
-  fontSize: 12,
-  color: '#666',
-},
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  updateCard: {
+    width: 180,
+    marginRight: 15,
+  },
+  postTitle: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginTop: 6,
+  },
+  postBy: {
+    fontSize: 12,
+    color: '#666',
+  },
   notificationBox: {
     backgroundColor: '#fff',
     padding: 6,
@@ -236,7 +237,7 @@ postBy: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 20,
-    padding: 8,
+    padding: 5,
     alignItems: 'center',
     marginVertical: 20,
   },
@@ -254,6 +255,11 @@ postBy: {
     alignItems: 'center',
   },
   sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  TopTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,

@@ -231,7 +231,7 @@ const AddPostScreen: React.FC = () => {
           <Icons name="add-circle-outline" size={26} color="#000" />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Updates')} disabled={uploading}>
+        <TouchableOpacity onPress={() => navigation.navigate('Updates', {})} disabled={uploading}>
           <Icons name="document-text-outline" size={26} color="#000" />
         </TouchableOpacity>
 
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#EDF4F6',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 40,
   },
   header: {
     flexDirection: 'row',
