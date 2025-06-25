@@ -49,7 +49,7 @@ const HomeScreen: React.FC = () => {
           setProfilePic(data.photoURL);
         }
       }
-  });
+    });
     // 2. Fetch latest posts (exclude anonymous & own)
     const unsubscribePosts = firestore()
       .collection('posts')
