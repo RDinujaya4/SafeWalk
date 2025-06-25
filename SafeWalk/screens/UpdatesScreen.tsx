@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, Image, ScrollView,
   TouchableOpacity, Modal, TextInput, FlatList,
-  ActivityIndicator
+  ActivityIndicator, Animated
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
@@ -12,7 +12,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import { Animated } from 'react-native';
 import { RootStackParamList } from '../App';
 
 dayjs.extend(relativeTime);
@@ -45,7 +44,6 @@ const UpdatesScreen: React.FC = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const postRefs = useRef<Record<string, number>>({});
 
-
   const currentUid = auth().currentUser?.uid;
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -69,40 +67,38 @@ const UpdatesScreen: React.FC = () => {
         setLoadingPosts(false);
       });
 
+    return () => unsubscribe();
+  }, []);
+
+  // Scroll to highlighted post
+  useEffect(() => {
+    if (highlightedPostId) {
       setTimeout(() => {
-        if (highlightedPostId && postRefs.current[highlightedPostId]) {
+        if (postRefs.current[highlightedPostId]) {
           scrollViewRef.current?.scrollTo({
             y: postRefs.current[highlightedPostId] - 10,
             animated: true,
           });
         }
-      }, 500); // Delay to allow layout to render
+      }, 600);
 
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (highlightedPostId) {
       const timer = setTimeout(() => {
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 500,
           useNativeDriver: true,
         }).start(() => {
-          setHighlightedPostId(null); // remove highlight after fade
-          fadeAnim.setValue(1); // reset for future highlights
+          setHighlightedPostId(null);
+          fadeAnim.setValue(0);
         });
-      }, 2500); // wait 2.5 seconds before fading out
+      }, 2500);
 
       return () => {
         clearTimeout(timer);
-        fadeAnim.setValue(1); // reset if user navigates away quickly
+        fadeAnim.setValue(0);
       };
     }
   }, [highlightedPostId]);
-
-
 
   const toggleLike = async (post: Post) => {
     const uid = currentUid || '';
@@ -198,20 +194,30 @@ const UpdatesScreen: React.FC = () => {
               : DEFAULT_AVATAR;
 
           const isHighlighted = highlightedPostId === post.id;
-          const CardComponent = isHighlighted ? Animated.View : View;
 
           return (
-            <CardComponent
+            <View
               key={post.id}
-              style={[
-                styles.card,
-                isHighlighted && styles.highlightedCard,
-                isHighlighted && { opacity: fadeAnim },
-              ]}
+              style={styles.card}
               onLayout={(event) => {
                 postRefs.current[post.id] = event.nativeEvent.layout.y;
               }}
             >
+              {isHighlighted && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      borderColor: '#4ca0af',
+                      borderWidth: 2.5,
+                      borderRadius: 12,
+                      opacity: fadeAnim,
+                    },
+                  ]}
+                />
+              )}
+
               <View style={styles.userRow}>
                 <Image source={avatarSource} style={styles.avatar} />
                 <View>
@@ -253,7 +259,7 @@ const UpdatesScreen: React.FC = () => {
                   <Icon name="share-social-outline" size={22} />
                 </TouchableOpacity>
               </View>
-            </CardComponent>
+            </View>
           );
         })}
       </ScrollView>
