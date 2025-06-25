@@ -242,7 +242,8 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: 5,
+    marginLeft: 8,
   },
   searchInput: {
     flex: 1,
