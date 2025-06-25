@@ -40,7 +40,7 @@ interface Comment {
   userId: string;
   username?: string;
   photoURL?: string;
-  anonymous: boolean;
+  anonymous: 'yes' | 'no';
   text: string;
   createdAt: FirebaseFirestoreTypes.Timestamp;
 }
@@ -67,56 +67,51 @@ const UpdatesScreen: React.FC = () => {
   const commentListenersRef = useRef<Record<string, () => void>>({});
 
   useEffect(() => {
-  const unsubscribePosts = firestore()
-    .collection('posts')
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(snapshot => {
-      const fetchedPosts = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          likes: data.likes || [],
-          saves: data.saves || [],
-        };
-      }) as Post[];
+    const unsubscribePosts = firestore()
+      .collection('posts')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        const fetchedPosts = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            likes: data.likes || [],
+            saves: data.saves || [],
+          };
+        }) as Post[];
 
+        Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
+        commentListenersRef.current = {};
 
-      // Clear old listeners first
-      Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
-      commentListenersRef.current = {};
+        fetchedPosts.forEach(post => {
+          const unsubscribeComments = firestore()
+            .collection('posts')
+            .doc(post.id)
+            .collection('comments')
+            .onSnapshot(commentSnapshot => {
+              const updatedPosts = [...fetchedPosts];
+              const index = updatedPosts.findIndex(p => p.id === post.id);
+              const commentCount = commentSnapshot.size;
 
-      // Attach a comment listener for each post
-      fetchedPosts.forEach(post => {
-        const unsubscribeComments = firestore()
-          .collection('posts')
-          .doc(post.id)
-          .collection('comments')
-          .onSnapshot(commentSnapshot => {
-            const updatedPosts = [...posts];
-            const index = updatedPosts.findIndex(p => p.id === post.id);
-            const commentCount = commentSnapshot.size;
+              if (index !== -1) {
+                updatedPosts[index].commentsCount = commentCount;
+                setPosts([...updatedPosts]);
+              }
+            });
 
-            if (index !== -1) {
-              updatedPosts[index].commentsCount = commentCount;
-              setPosts([...updatedPosts]);
-            }
-          });
+          commentListenersRef.current[post.id] = unsubscribeComments;
+        });
 
-        commentListenersRef.current[post.id] = unsubscribeComments;
+        setPosts(fetchedPosts.map(p => ({ ...p, commentsCount: 0 })));
+        setLoadingPosts(false);
       });
 
-      // Set initial posts with default 0 comment count
-      setPosts(fetchedPosts.map(p => ({ ...p, commentsCount: 0 })));
-      setLoadingPosts(false);
-    });
-
-  return () => {
-    unsubscribePosts();
-    Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
-  };
-}, []);
-
+    return () => {
+      unsubscribePosts();
+      Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
+    };
+  }, []);
 
   useEffect(() => {
     if (highlightedPostId) {
@@ -172,7 +167,11 @@ const UpdatesScreen: React.FC = () => {
       .collection('comments')
       .orderBy('createdAt', 'desc')
       .onSnapshot(snapshot => {
-        const cmts = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })) as Comment[];
+        const cmts = snapshot.docs.map(doc => {
+        const data = doc.data() as Omit<Comment, 'id'>;
+        return { id: doc.id, ...data };
+      });
+
         setComments(cmts);
         setCommentsLoading(false);
       });
@@ -188,29 +187,27 @@ const UpdatesScreen: React.FC = () => {
   };
 
   const addComment = async () => {
-  if (!commentText.trim() || !activePostId) return;
+    if (!commentText.trim() || !activePostId) return;
+    const docUser = await firestore().collection('users').doc(currentUid!).get();
+    const dataUser = docUser.data() || {};
+    const commentUsername = anonymousComment ? 'Anonymous' : dataUser.username || 'Unknown';
+    const commentPhotoURL = anonymousComment ? '' : (dataUser.photoURL || '');
 
-  const docUser = await firestore().collection('users').doc(currentUid!).get();
-  const dataUser = docUser.data() || {};
-  const commentUsername = anonymousComment ? 'Anonymous' : dataUser.username || 'Unknown';
-  const commentPhotoURL = anonymousComment ? '' : (dataUser.photoURL || '');
+    await firestore()
+      .collection('posts')
+      .doc(activePostId)
+      .collection('comments')
+      .add({
+        text: commentText.trim(),
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        userId: currentUid,
+        username: commentUsername,
+        photoURL: commentPhotoURL,
+        anonymous: anonymousComment ? 'yes' : 'no',
+      });
 
-  await firestore()
-    .collection('posts')
-    .doc(activePostId)
-    .collection('comments')
-    .add({
-      text: commentText.trim(),
-      createdAt: firestore.FieldValue.serverTimestamp(),
-      userId: currentUid,
-      username: commentUsername,
-      photoURL: commentPhotoURL,
-      anonymous: anonymousComment ? 'yes' : 'no',
-    });
-
-  setCommentText('');
-};
-
+    setCommentText('');
+  };
 
   const deleteComment = async (commentId: string) => {
     if (!activePostId) return;
@@ -229,7 +226,7 @@ const UpdatesScreen: React.FC = () => {
   }, []);
 
   if (loadingPosts) {
-    return ( 
+    return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF7F6C" />
       </View>
@@ -242,7 +239,7 @@ const UpdatesScreen: React.FC = () => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} />
         </TouchableOpacity>
-          <Text style={styles.title}>Updates</Text>
+        <Text style={styles.title}>Updates</Text>
       </View>
 
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer}>
@@ -327,7 +324,7 @@ const UpdatesScreen: React.FC = () => {
           );
         })}
       </ScrollView>
-      {/* ...existing header and post rendering code remains unchanged... */}
+
       <Modal visible={!!activePostId} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -340,11 +337,11 @@ const UpdatesScreen: React.FC = () => {
                   <View style={styles.commentItem}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Image
-                        source={item.anonymous || !item.photoURL ? DEFAULT_AVATAR : { uri: item.photoURL }}
+                        source={item.anonymous === 'yes' || !item.photoURL ? DEFAULT_AVATAR : { uri: item.photoURL }}
                         style={styles.avatar}
                       />
                       <View style={{ marginLeft: 10, flex: 1 }}>
-                        <Text style={styles.username}>{item.anonymous ? 'Anonymous' : `@${item.username}`}</Text>
+                        <Text style={styles.username}>{item.anonymous === 'yes' ? 'Anonymous' : `@${item.username}`}</Text>
                         <Text style={styles.time}>{item.createdAt?.toDate ? dayjs(item.createdAt.toDate()).fromNow() : 'Just now'}</Text>
                       </View>
                       {item.userId === currentUid && (
@@ -383,27 +380,12 @@ const UpdatesScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-      <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Icon name="home-outline" size={26} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
-          <Icon name="add-circle-outline" size={26} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Updates', {})}>
-          <Icon name="document-text-outline" size={26} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Map')}>
-          <Icon name="map-outline" size={30} />
-          <Icon name="location-outline" size={14} style={styles.pin} />
-        </TouchableOpacity>
-      </View>
-      {/* ...bottom nav remains unchanged... */}
     </View>
   );
 };
 
 export default UpdatesScreen;
+
 
 const styles = StyleSheet.create({
   // ... keep all your existing styles untouched ...
