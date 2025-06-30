@@ -18,6 +18,7 @@ import MapScreen from './screens/MapScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import SavedPostsScreen from './screens/SavedPostsScreen';
 import ManagePostsScreen from './screens/ManagePostsScreen';
+import EditPostScreen from './screens/EditPostScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   Settings: undefined;
   SavedPosts: undefined;
   ManagePosts: undefined;
+  EditPost: { postId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -60,6 +62,7 @@ const App = () => {
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
         <Stack.Screen name="ManagePosts" component={ManagePostsScreen} />
+        <Stack.Screen name="EditPost" component={EditPostScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

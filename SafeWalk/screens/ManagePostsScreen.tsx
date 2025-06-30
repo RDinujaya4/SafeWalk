@@ -315,12 +315,13 @@ const ManagePostsScreen: React.FC = () => {
                 >
                     <TouchableOpacity activeOpacity={1} style={styles.menuContainer}>
                     <TouchableOpacity style={styles.menuItem} onPress={() => {
-                        setShowMenuId(null);
-                        // TODO: Replace with your edit logic
+                      setShowMenuId(null);
+                      navigation.navigate('EditPost', { postId: post.id });
                     }}>
-                        <Icon name="pencil-outline" size={18} color="#333" style={styles.menuIcon} />
-                        <Text style={styles.menuText}>Edit</Text>
+                      <Icon name="pencil-outline" size={18} color="#333" style={styles.menuIcon} />
+                      <Text style={styles.menuText}>Edit</Text>
                     </TouchableOpacity>
+
                     <TouchableOpacity style={styles.menuItem} onPress={() => {
                         setShowMenuId(null);
                         deletePost(post.id);
