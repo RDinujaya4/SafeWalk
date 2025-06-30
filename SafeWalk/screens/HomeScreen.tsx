@@ -109,31 +109,33 @@ const HomeScreen: React.FC = () => {
       </View>
 
       {/* Recent Updates */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Updates</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Updates', {})}>
-          <Text style={styles.viewAll}>View All</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Updates</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Updates', {})}>
+            <Text style={styles.viewAll}>View All</Text>
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-        {recentPosts.length === 0 ? (
-          <ActivityIndicator color="#999" style={{ marginTop: 10 }} />
-        ) : (
-          recentPosts.map(post => (
-            <TouchableOpacity
-              key={post.id}
-              onPress={() => navigation.navigate('Updates', { postId: post.id })}
-            >
-              <Image source={{ uri: post.imageUrl }} style={styles.updateImage} />
-            </TouchableOpacity>
-          ))
-        )}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
+          {recentPosts.length === 0 ? (
+            <ActivityIndicator color="#999" style={{ marginTop: 10 }} />
+          ) : (
+            recentPosts.map(post => (
+              <TouchableOpacity
+                key={post.id}
+                onPress={() => navigation.navigate('Updates', { postId: post.id })}
+              >
+                <Image source={{ uri: post.imageUrl }} style={styles.updateImage} />
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+
+        {/* Safety Map */}
+        <Text style={styles.sectionTitle}>Safety Map</Text>
+        <Image source={require('../assets/map.png')} style={styles.mapImage} />
       </ScrollView>
-
-      {/* Safety Map */}
-      <Text style={styles.sectionTitle}>Safety Map</Text>
-      <Image source={require('../assets/map.png')} style={styles.mapImage} />
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
