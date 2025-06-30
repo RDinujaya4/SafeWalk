@@ -65,6 +65,8 @@ const UpdatesScreen: React.FC = () => {
   const [anonymousComment, setAnonymousComment] = useState(false);
   const commentsUnsubscribeRef = useRef<() => void | null>(null);
   const commentListenersRef = useRef<Record<string, () => void>>({});
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+
 
   useEffect(() => {
     const unsubscribePosts = firestore()
@@ -90,14 +92,10 @@ const UpdatesScreen: React.FC = () => {
             .doc(post.id)
             .collection('comments')
             .onSnapshot(commentSnapshot => {
-              const updatedPosts = [...fetchedPosts];
-              const index = updatedPosts.findIndex(p => p.id === post.id);
-              const commentCount = commentSnapshot.size;
-
-              if (index !== -1) {
-                updatedPosts[index].commentsCount = commentCount;
-                setPosts([...updatedPosts]);
-              }
+              setCommentCounts(prev => ({
+                ...prev,
+                [post.id]: commentSnapshot.size,
+              }));
             });
 
           commentListenersRef.current[post.id] = unsubscribeComments;
@@ -299,7 +297,7 @@ const UpdatesScreen: React.FC = () => {
 
               <View style={styles.iconRow}>
                 <View style={styles.iconWithCount}>
-                  <Text style={styles.countText}>{post.commentsCount ?? 0}</Text>
+                  <Text style={styles.countText}>{commentCounts[post.id] ?? 0}</Text>
                   <TouchableOpacity onPress={() => openComments(post.id)}>
                     <Icon name="chatbubble-outline" size={22} />
                   </TouchableOpacity>
@@ -346,7 +344,7 @@ const UpdatesScreen: React.FC = () => {
                       </View>
                       {item.userId === currentUid && (
                         <TouchableOpacity onPress={() => deleteComment(item.id)}>
-                          <Icon name="trash-outline" size={20} color="#888" />
+                          <Icon name="trash-outline" size={20} color="#cc1414" />
                         </TouchableOpacity>
                       )}
                     </View>
