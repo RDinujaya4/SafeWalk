@@ -56,7 +56,6 @@ const SavedPostsScreen: React.FC = () => {
   const [anonymousComment, setAnonymousComment] = useState(false);
   const commentsUnsubscribeRef = useRef<(() => void) | null>(null);
   const commentListenersRef = useRef<Record<string, () => void>>({});
-  // NEW: Separate comment count map to avoid frequent full post updates
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
 
@@ -76,12 +75,10 @@ const SavedPostsScreen: React.FC = () => {
           commentsCount: 0
         })) as Post[];
 
-        // Reset comment listeners
         Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
         commentListenersRef.current = {};
 
         list.forEach(post => {
-          // NEW: Only update commentCounts separately, not full post list
           const unsubscribeComments = firestore()
             .collection('posts')
             .doc(post.id)
@@ -311,7 +308,6 @@ const SavedPostsScreen: React.FC = () => {
 export default SavedPostsScreen;
 
 const styles = StyleSheet.create({
-  // ... keep your existing styles ...
    container: { 
     flex: 1, 
     backgroundColor: '#eaf4f7', 
@@ -446,5 +442,4 @@ const styles = StyleSheet.create({
     color: '#555',
     marginRight: 2,
   },
-  // ...
 });

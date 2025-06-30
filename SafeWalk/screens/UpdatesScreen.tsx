@@ -65,7 +65,6 @@ const UpdatesScreen: React.FC = () => {
   const [anonymousComment, setAnonymousComment] = useState(false);
   const commentsUnsubscribeRef = useRef<() => void | null>(null);
   const commentListenersRef = useRef<Record<string, () => void>>({});
-  // NEW: Separate comment count map to avoid frequent full post updates
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
 
@@ -88,7 +87,6 @@ const UpdatesScreen: React.FC = () => {
         commentListenersRef.current = {};
 
         fetchedPosts.forEach(post => {
-          // NEW: Only update commentCounts separately, not full post list
           const unsubscribeComments = firestore()
             .collection('posts')
             .doc(post.id)
