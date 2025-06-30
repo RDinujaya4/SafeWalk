@@ -80,7 +80,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.TopTitle}>SafeWalk</Text>
+      <Text style={styles.TopTitle}>𝓢𝓪𝓯𝓮𝓦𝓪𝓵𝓴</Text>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
