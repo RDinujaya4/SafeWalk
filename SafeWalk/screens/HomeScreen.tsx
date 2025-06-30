@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   scrollRow: {
-    marginBottom: 20,
+    marginBottom: 35,
   },
   updateImage: {
     width: 350,
