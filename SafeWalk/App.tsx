@@ -17,6 +17,7 @@ import AdminDashboardScreen from './screens/AdminDashboardScreen';
 import MapScreen from './screens/MapScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import SavedPostsScreen from './screens/SavedPostsScreen';
+import ManagePostsScreen from './screens/ManagePostsScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   Settings: undefined;
   SavedPosts: undefined;
+  ManagePosts: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -57,6 +59,7 @@ const App = () => {
         <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
+        <Stack.Screen name="ManagePosts" component={ManagePostsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
