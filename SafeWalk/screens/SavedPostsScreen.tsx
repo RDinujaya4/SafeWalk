@@ -238,6 +238,11 @@ const SavedPostsScreen: React.FC = () => {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF7F6C" />
         </View>
+      ) : posts.length === 0 ? (
+        <View style={styles.noPostsContainer}>
+          <Icon name="bookmark-outline" size={60} color="#7C4585" />
+          <Text style={styles.noPostsText}>You haven’t saved any posts yet.</Text>
+        </View>
       ) : (
         <FlatList
           contentContainerStyle={styles.scrollContainer}
@@ -246,7 +251,8 @@ const SavedPostsScreen: React.FC = () => {
           renderItem={renderPost}
         />
       )}
-     <Modal visible={!!activePostId} transparent animationType="slide">
+
+      <Modal visible={!!activePostId} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             {commentsLoading ? (
@@ -258,12 +264,24 @@ const SavedPostsScreen: React.FC = () => {
                   <View style={styles.commentItem}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Image
-                        source={item.anonymous === 'yes' || !item.photoURL ? DEFAULT_AVATAR : { uri: item.photoURL }}
+                        source={
+                          item.anonymous === 'yes' || !item.photoURL
+                            ? DEFAULT_AVATAR
+                            : { uri: item.photoURL }
+                        }
                         style={styles.avatar}
                       />
                       <View style={{ marginLeft: 10, flex: 1 }}>
-                        <Text style={styles.username}>{item.anonymous === 'yes' ? 'Anonymous' : `@${item.username}`}</Text>
-                        <Text style={styles.time}>{item.createdAt?.toDate ? dayjs(item.createdAt.toDate()).fromNow() : 'Just now'}</Text>
+                        <Text style={styles.username}>
+                          {item.anonymous === 'yes'
+                            ? 'Anonymous'
+                            : `@${item.username}`}
+                        </Text>
+                        <Text style={styles.time}>
+                          {item.createdAt?.toDate
+                            ? dayjs(item.createdAt.toDate()).fromNow()
+                            : 'Just now'}
+                        </Text>
                       </View>
                       {item.userId === currentUid && (
                         <TouchableOpacity onPress={() => deleteComment(item.id)}>
@@ -274,16 +292,15 @@ const SavedPostsScreen: React.FC = () => {
                     <Text style={{ marginTop: 4 }}>{item.text}</Text>
                   </View>
                 )}
-                keyExtractor={item => item.id}
+                keyExtractor={(item) => item.id}
               />
             )}
+
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-              <Switch
-                value={anonymousComment}
-                onValueChange={setAnonymousComment}
-              />
+              <Switch value={anonymousComment} onValueChange={setAnonymousComment} />
               <Text style={{ marginLeft: 6 }}>Post anonymously</Text>
             </View>
+
             <View style={styles.commentInputRow}>
               <TextInput
                 placeholder="Add a comment..."
@@ -295,6 +312,7 @@ const SavedPostsScreen: React.FC = () => {
                 <Icon name="send" size={24} color="#4ca0af" />
               </TouchableOpacity>
             </View>
+
             <TouchableOpacity onPress={closeComments} style={styles.closeBtn}>
               <Text style={styles.closeText}>Close</Text>
             </TouchableOpacity>
@@ -441,5 +459,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#555',
     marginRight: 2,
+  },
+  noPostsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    paddingBottom: 100,
+  },
+  noPostsText: {
+    fontSize: 16,
+    color: '#777',
+    textAlign: 'center',
+    marginTop: 12,
   },
 });
