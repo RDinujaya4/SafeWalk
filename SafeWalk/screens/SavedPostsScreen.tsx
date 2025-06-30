@@ -56,6 +56,9 @@ const SavedPostsScreen: React.FC = () => {
   const [anonymousComment, setAnonymousComment] = useState(false);
   const commentsUnsubscribeRef = useRef<(() => void) | null>(null);
   const commentListenersRef = useRef<Record<string, () => void>>({});
+  // NEW: Separate comment count map to avoid frequent full post updates
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+
 
   useEffect(() => {
     if (!currentUid) return;
@@ -78,19 +81,19 @@ const SavedPostsScreen: React.FC = () => {
         commentListenersRef.current = {};
 
         list.forEach(post => {
-          const unsub = firestore()
+          // NEW: Only update commentCounts separately, not full post list
+          const unsubscribeComments = firestore()
             .collection('posts')
             .doc(post.id)
             .collection('comments')
-            .onSnapshot(commentSnap => {
-              const index = list.findIndex(p => p.id === post.id);
-              if (index !== -1) {
-                list[index].commentsCount = commentSnap.size;
-                setPosts([...list]);
-              }
+            .onSnapshot(commentSnapshot => {
+              setCommentCounts(prev => ({
+                ...prev,
+                [post.id]: commentSnapshot.size,
+              }));
             });
 
-          commentListenersRef.current[post.id] = unsub;
+          commentListenersRef.current[post.id] = unsubscribeComments;
         });
 
         setPosts(list);
@@ -200,7 +203,7 @@ const SavedPostsScreen: React.FC = () => {
 
         <View style={styles.iconRow}>
           <View style={styles.iconWithCount}>
-            <Text style={styles.countText}>{post.commentsCount ?? 0}</Text>
+            <Text style={styles.countText}>{commentCounts[post.id] ?? 0}</Text>
             <TouchableOpacity onPress={() => openComments(post.id)}>
               <Icon name="chatbubble-outline" size={22} />
             </TouchableOpacity>
@@ -217,6 +220,9 @@ const SavedPostsScreen: React.FC = () => {
               <Icon name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#7C4585' : undefined} />
             </TouchableOpacity>
           </View>
+            <TouchableOpacity onPress={() => {}}>
+              <Icon name="share-social-outline" size={22} />
+            </TouchableOpacity>
         </View>
       </View>
     );
@@ -264,7 +270,7 @@ const SavedPostsScreen: React.FC = () => {
                       </View>
                       {item.userId === currentUid && (
                         <TouchableOpacity onPress={() => deleteComment(item.id)}>
-                          <Icon name="trash-outline" size={20} color="#888" />
+                          <Icon name="trash-outline" size={20} color="#cc1414" />
                         </TouchableOpacity>
                       )}
                     </View>
