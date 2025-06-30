@@ -83,26 +83,29 @@ const ManagePostsScreen: React.FC = () => {
       const unsubFunctions = docs.map(doc => {
         const postId = doc.id;
 
-        // 👇 Set up live listener for each post
         const unsubscribePost = firestore()
           .collection('posts')
           .doc(postId)
           .onSnapshot(postSnap => {
             if (!postSnap.exists) return;
-            const data = postSnap.data() as Partial<Post>;
+            const data = postSnap.data();
+            if (!data) {
+            setPosts(prev => prev.filter(p => p.id !== postSnap.id));
+            return;
+            }
             const updatedPost: Post = {
-            id: postSnap.id,
-            userId: data.userId ?? '',
-            username: data.username ?? '',
-            title: data.title ?? '',
-            description: data.description ?? '',
-            location: data.location ?? '',
-            imageUrl: data.imageUrl ?? '',
-            anonymous: data.anonymous ?? 'no',
-            createdAt: data.createdAt ?? firestore.Timestamp.now(),
-            photoURL: data.photoURL ?? '',
-            likes: data.likes || [],
-            saves: data.saves || [],
+                id: postSnap.id,
+                userId: data.userId ?? '',
+                username: data.username ?? '',
+                title: data.title ?? '',
+                description: data.description ?? '',
+                location: data.location ?? '',
+                imageUrl: data.imageUrl ?? '',
+                anonymous: data.anonymous ?? 'no',
+                createdAt: data.createdAt ?? firestore.Timestamp.now(),
+                photoURL: data.photoURL ?? '',
+                likes: data.likes || [],
+                saves: data.saves || [],
             };
 
             setPosts(prev => {
@@ -259,6 +262,15 @@ const ManagePostsScreen: React.FC = () => {
         <Text style={styles.title}>Manage Posts</Text>
       </View>
 
+    {posts.length === 0 ? (
+        <View style={styles.noPostsContainer}>
+            <Icon name="sad-outline" size={60} color="#E195AB" />
+            <Text style={styles.noPostsText}>You haven't created any posts yet.</Text>
+            <TouchableOpacity style={styles.createPostBtn} onPress={() => navigation.navigate('AddPost')}>
+                <Text style={styles.createPostBtnText}>Create New Post</Text>
+            </TouchableOpacity>
+        </View>
+     ) : (
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer}>
         {posts.map((post) => {
           const isAnon = post.anonymous === 'yes';
@@ -296,15 +308,29 @@ const ManagePostsScreen: React.FC = () => {
               </View>
 
               {showMenuId === post.id && (
-                <View style={styles.menuContainer}>
-                  <TouchableOpacity onPress={() => {/* Edit logic */}}>
-                    <Text style={styles.menuText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => deletePost(post.id)}>
-                    <Text style={[styles.menuText, { color: 'red' }]}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+                <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => setShowMenuId(null)} // ✅ Tap outside to close
+                    style={styles.menuOverlay}
+                >
+                    <TouchableOpacity activeOpacity={1} style={styles.menuContainer}>
+                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                        setShowMenuId(null);
+                        // TODO: Replace with your edit logic
+                    }}>
+                        <Icon name="pencil-outline" size={18} color="#333" style={styles.menuIcon} />
+                        <Text style={styles.menuText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.menuItem} onPress={() => {
+                        setShowMenuId(null);
+                        deletePost(post.id);
+                    }}>
+                        <Icon name="trash-outline" size={18} color="red" style={styles.menuIcon} />
+                        <Text style={[styles.menuText, { color: 'red' }]}>Delete</Text>
+                    </TouchableOpacity>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+                )}
 
               <Text style={styles.postTitle}>{post.title}</Text>
               <Text style={styles.postLocation}>{post.location}</Text>
@@ -337,7 +363,7 @@ const ManagePostsScreen: React.FC = () => {
             </View>
           );
         })}
-      </ScrollView>
+      </ScrollView> )}
 
       <Modal visible={!!activePostId} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -560,20 +586,70 @@ const styles = StyleSheet.create({
     color: '#555',
     marginRight: 2,
   },
-   menuContainer: {
-    position: 'absolute',
-    top: 30,
-    right: 10,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 8,
-    elevation: 4,
-    zIndex: 999,
-    borderWidth: 0.5,
-    borderColor: '#ccc'
-  },
-  menuText: {
-    fontSize: 14,
-    paddingVertical: 4
-  }
+   noPostsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 90,
+ },
+  noPostsText: {
+   fontSize: 18,
+   color: '#666',
+   marginTop: 12,
+   textAlign: 'center',
+   paddingHorizontal: 20,
+ },
+ createPostBtn: {
+  marginTop: 20,
+  backgroundColor: '#248dad',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 25,
+},
+createPostBtnText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '600',
+},
+menuOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 100,
+},
+
+menuContainer: {
+  position: 'absolute',
+  top: 30,
+  right: 10,
+  backgroundColor: '#fff',
+  borderRadius: 10,
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  elevation: 6,
+  shadowColor: '#000',
+  shadowOpacity: 0.1,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 4,
+  borderWidth: 0.5,
+  borderColor: '#ccc',
+},
+
+menuItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 8,
+},
+
+menuIcon: {
+  marginRight: 10,
+},
+
+menuText: {
+  fontSize: 15,
+  color: '#333',
+},
+
 });
