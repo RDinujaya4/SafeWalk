@@ -112,7 +112,7 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={() => navigation.navigate('AddPost')}
+            onPress={() => navigation.navigate('ManagePosts')}
           >
             <Text style={styles.secondaryButtonText}>Manage Posts</Text>
           </TouchableOpacity>
