@@ -99,6 +99,8 @@ const AddPostScreen: React.FC = () => {
       createdAt: firestore.FieldValue.serverTimestamp(),
     });
 
+    const postId = postRef.id;
+
     // Send a notification to all users except the sender
     const usersSnapshot = await firestore().collection('users').get();
     const batch = firestore().batch();
@@ -112,6 +114,7 @@ const AddPostScreen: React.FC = () => {
           fromUsername: anonymous ? 'Anonymous' : username,
           type: 'new_post',
           postTitle: title.trim(),
+          postId: postId,
           createdAt: firestore.FieldValue.serverTimestamp(),
           read: false,
         });

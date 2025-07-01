@@ -1,17 +1,25 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
-  View, Text, StyleSheet, Image, TouchableOpacity,
-  FlatList, TextInput, Modal, ActivityIndicator, Switch
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  Modal,
+  ActivityIndicator,
+  Switch,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {useNavigation} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import { RootStackParamList } from '../App';
+import {FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
+import {RootStackParamList} from '../App';
 
 dayjs.extend(relativeTime);
 
@@ -56,8 +64,9 @@ const SavedPostsScreen: React.FC = () => {
   const [anonymousComment, setAnonymousComment] = useState(false);
   const commentsUnsubscribeRef = useRef<(() => void) | null>(null);
   const commentListenersRef = useRef<Record<string, () => void>>({});
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
-
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     if (!currentUid) return;
@@ -72,7 +81,7 @@ const SavedPostsScreen: React.FC = () => {
           ...(doc.data() as any),
           likes: doc.data().likes || [],
           saves: doc.data().saves || [],
-          commentsCount: 0
+          commentsCount: 0,
         })) as Post[];
 
         Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
@@ -108,7 +117,10 @@ const SavedPostsScreen: React.FC = () => {
     const newLikes = post.likes?.includes(uid)
       ? firestore.FieldValue.arrayRemove(uid)
       : firestore.FieldValue.arrayUnion(uid);
-    await firestore().collection('posts').doc(post.id).update({ likes: newLikes });
+    await firestore()
+      .collection('posts')
+      .doc(post.id)
+      .update({likes: newLikes});
   };
 
   const toggleSave = async (post: Post) => {
@@ -116,7 +128,10 @@ const SavedPostsScreen: React.FC = () => {
     const newSaves = post.saves?.includes(uid)
       ? firestore.FieldValue.arrayRemove(uid)
       : firestore.FieldValue.arrayUnion(uid);
-    await firestore().collection('posts').doc(post.id).update({ saves: newSaves });
+    await firestore()
+      .collection('posts')
+      .doc(post.id)
+      .update({saves: newSaves});
   };
 
   const openComments = async (postId: string) => {
@@ -130,7 +145,10 @@ const SavedPostsScreen: React.FC = () => {
       .collection('comments')
       .orderBy('createdAt', 'desc')
       .onSnapshot(snapshot => {
-        const cmts = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })) as Comment[];
+        const cmts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...(doc.data() as any),
+        })) as Comment[];
         setComments(cmts);
         setCommentsLoading(false);
       });
@@ -146,10 +164,15 @@ const SavedPostsScreen: React.FC = () => {
 
   const addComment = async () => {
     if (!commentText.trim() || !activePostId) return;
-    const docUser = await firestore().collection('users').doc(currentUid!).get();
+    const docUser = await firestore()
+      .collection('users')
+      .doc(currentUid!)
+      .get();
     const dataUser = docUser.data() || {};
-    const commentUsername = anonymousComment ? 'Anonymous' : dataUser.username || 'Unknown';
-    const commentPhotoURL = anonymousComment ? '' : (dataUser.photoURL || '');
+    const commentUsername = anonymousComment
+      ? 'Anonymous'
+      : dataUser.username || 'Unknown';
+    const commentPhotoURL = anonymousComment ? '' : dataUser.photoURL || '';
 
     await firestore()
       .collection('posts')
@@ -177,26 +200,36 @@ const SavedPostsScreen: React.FC = () => {
       .delete();
   };
 
-  const renderPost = ({ item: post }: { item: Post }) => {
+  const renderPost = ({item: post}: {item: Post}) => {
     const isAnon = post.anonymous === 'yes';
     const liked = post.likes?.includes(currentUid!) ?? false;
     const saved = post.saves?.includes(currentUid!) ?? false;
-    const avatarSource = isAnon ? DEFAULT_AVATAR : post.photoURL ? { uri: post.photoURL } : DEFAULT_AVATAR;
+    const avatarSource = isAnon
+      ? DEFAULT_AVATAR
+      : post.photoURL
+      ? {uri: post.photoURL}
+      : DEFAULT_AVATAR;
 
     return (
       <View style={styles.card}>
         <View style={styles.userRow}>
           <Image source={avatarSource} style={styles.avatar} />
           <View>
-            <Text style={styles.username}>{isAnon ? 'Anonymous' : `@${post.username}`}</Text>
-            <Text style={styles.time}>{post.createdAt?.toDate ? dayjs(post.createdAt.toDate()).fromNow() : 'Just now'}</Text>
+            <Text style={styles.username}>
+              {isAnon ? 'Anonymous' : `@${post.username}`}
+            </Text>
+            <Text style={styles.time}>
+              {post.createdAt?.toDate
+                ? dayjs(post.createdAt.toDate()).fromNow()
+                : 'Just now'}
+            </Text>
           </View>
         </View>
 
         <Text style={styles.postTitle}>{post.title}</Text>
         <Text style={styles.postLocation}>{post.location}</Text>
         <Text style={styles.postDesc}>{post.description}</Text>
-        <Image source={{ uri: post.imageUrl }} style={styles.postImg} />
+        <Image source={{uri: post.imageUrl}} style={styles.postImg} />
 
         <View style={styles.iconRow}>
           <View style={styles.iconWithCount}>
@@ -208,18 +241,26 @@ const SavedPostsScreen: React.FC = () => {
           <View style={styles.iconWithCount}>
             <Text style={styles.countText}>{post.likes?.length ?? 0}</Text>
             <TouchableOpacity onPress={() => toggleLike(post)}>
-              <Icon name={liked ? 'thumbs-up' : 'thumbs-up-outline'} size={22} color={liked ? '#C95792' : undefined} />
+              <Icon
+                name={liked ? 'thumbs-up' : 'thumbs-up-outline'}
+                size={22}
+                color={liked ? '#C95792' : undefined}
+              />
             </TouchableOpacity>
           </View>
           <View style={styles.iconWithCount}>
             <Text style={styles.countText}>{post.saves?.length ?? 0}</Text>
             <TouchableOpacity onPress={() => toggleSave(post)}>
-              <Icon name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#7C4585' : undefined} />
+              <Icon
+                name={saved ? 'bookmark' : 'bookmark-outline'}
+                size={22}
+                color={saved ? '#7C4585' : undefined}
+              />
             </TouchableOpacity>
           </View>
-            <TouchableOpacity onPress={() => {}}>
-              <Icon name="share-social-outline" size={22} />
-            </TouchableOpacity>
+          <TouchableOpacity onPress={() => {}}>
+            <Icon name="share-social-outline" size={22} />
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -228,7 +269,9 @@ const SavedPostsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Saved Posts</Text>
@@ -241,13 +284,15 @@ const SavedPostsScreen: React.FC = () => {
       ) : posts.length === 0 ? (
         <View style={styles.noPostsContainer}>
           <Icon name="bookmark-outline" size={60} color="#7C4585" />
-          <Text style={styles.noPostsText}>You haven’t saved any posts yet.</Text>
+          <Text style={styles.noPostsText}>
+            You haven’t saved any posts yet.
+          </Text>
         </View>
       ) : (
         <FlatList
           contentContainerStyle={styles.scrollContainer}
           data={posts}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           renderItem={renderPost}
         />
       )}
@@ -260,18 +305,18 @@ const SavedPostsScreen: React.FC = () => {
             ) : (
               <FlatList
                 data={comments}
-                renderItem={({ item }) => (
+                renderItem={({item}) => (
                   <View style={styles.commentItem}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
                       <Image
                         source={
                           item.anonymous === 'yes' || !item.photoURL
                             ? DEFAULT_AVATAR
-                            : { uri: item.photoURL }
+                            : {uri: item.photoURL}
                         }
                         style={styles.avatar}
                       />
-                      <View style={{ marginLeft: 10, flex: 1 }}>
+                      <View style={{marginLeft: 10, flex: 1}}>
                         <Text style={styles.username}>
                           {item.anonymous === 'yes'
                             ? 'Anonymous'
@@ -284,21 +329,34 @@ const SavedPostsScreen: React.FC = () => {
                         </Text>
                       </View>
                       {item.userId === currentUid && (
-                        <TouchableOpacity onPress={() => deleteComment(item.id)}>
-                          <Icon name="trash-outline" size={20} color="#cc1414" />
+                        <TouchableOpacity
+                          onPress={() => deleteComment(item.id)}>
+                          <Icon
+                            name="trash-outline"
+                            size={20}
+                            color="#cc1414"
+                          />
                         </TouchableOpacity>
                       )}
                     </View>
-                    <Text style={{ marginTop: 4 }}>{item.text}</Text>
+                    <Text style={{marginTop: 4}}>{item.text}</Text>
                   </View>
                 )}
-                keyExtractor={(item) => item.id}
+                keyExtractor={item => item.id}
               />
             )}
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-              <Switch value={anonymousComment} onValueChange={setAnonymousComment} />
-              <Text style={{ marginLeft: 6 }}>Post anonymously</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 10,
+              }}>
+              <Switch
+                value={anonymousComment}
+                onValueChange={setAnonymousComment}
+              />
+              <Text style={{marginLeft: 6}}>Post anonymously</Text>
             </View>
 
             <View style={styles.commentInputRow}>
@@ -326,10 +384,10 @@ const SavedPostsScreen: React.FC = () => {
 export default SavedPostsScreen;
 
 const styles = StyleSheet.create({
-   container: { 
-    flex: 1, 
-    backgroundColor: '#eaf4f7', 
-    paddingTop: 50 
+  container: {
+    flex: 1,
+    backgroundColor: '#eaf4f7',
+    paddingTop: 50,
   },
   header: {
     flexDirection: 'row',
@@ -350,65 +408,65 @@ const styles = StyleSheet.create({
     marginLeft: 80,
     marginBottom: 20,
   },
-  scrollContainer: { 
-    paddingHorizontal: 16, 
-    paddingBottom: 100 
+  scrollContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
   },
-  card: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 12, 
-    marginBottom: 16 
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
   },
-  userRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 6 
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  avatar: { 
-    width: 35, 
-    height: 35, 
-    borderRadius: 20, 
-    marginRight: 10 
+  avatar: {
+    width: 35,
+    height: 35,
+    borderRadius: 20,
+    marginRight: 10,
   },
-  username: { 
-    fontWeight: 'bold' 
+  username: {
+    fontWeight: 'bold',
   },
-  time: { 
-    fontSize: 12, 
-    color: '#666' 
+  time: {
+    fontSize: 12,
+    color: '#666',
   },
-  postTitle: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    marginBottom: 4, 
-    color: '#333' 
+  postTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#333',
   },
-  postLocation: { 
-    fontSize: 13, 
-    color: '#666', 
-    marginBottom: 4 
+  postLocation: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
   },
-  postDesc: { 
-    fontSize: 14, 
-    color: '#333', 
-    marginBottom: 8 
+  postDesc: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
   },
-  postImg: { 
-    width: '100%', 
-    height: 150, 
-    borderRadius: 12, 
-    marginBottom: 10 
+  postImg: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 10,
   },
-  iconRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 10 
+  iconRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
   },
-  modalOverlay: { 
-    flex: 1, 
-    justifyContent: 'flex-end', 
-    backgroundColor: 'rgba(0,0,0,0.5)'
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
     backgroundColor: '#f9f9f9',
@@ -417,10 +475,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '70%',
   },
-  commentItem: { 
-    paddingVertical: 4, 
-    borderBottomWidth: 0.5, 
-    borderBottomColor: '#ccc' 
+  commentItem: {
+    paddingVertical: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#ccc',
   },
   commentInputRow: {
     flexDirection: 'row',
@@ -437,18 +495,18 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: '#fff',
   },
-  closeBtn: { 
-    alignSelf: 'center', 
-    marginTop: 10 
+  closeBtn: {
+    alignSelf: 'center',
+    marginTop: 10,
   },
-  closeText: { 
-    color: 'red', 
-    fontWeight: '600' 
+  closeText: {
+    color: 'red',
+    fontWeight: '600',
   },
-  centered: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   iconWithCount: {
     flexDirection: 'row',

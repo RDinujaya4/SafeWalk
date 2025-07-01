@@ -1,18 +1,27 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
-  View, Text, StyleSheet, Image, ScrollView,
-  TouchableOpacity, Modal, TextInput, FlatList,
-  ActivityIndicator, Alert, Switch
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  Switch,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import { RootStackParamList } from '../App';
+import {FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
+import {RootStackParamList} from '../App';
 
 dayjs.extend(relativeTime);
 
@@ -63,37 +72,39 @@ const ManagePostsScreen: React.FC = () => {
   const [anonymousComment, setAnonymousComment] = useState(false);
   const commentsUnsubscribeRef = useRef<() => void | null>(null);
   const commentListenersRef = useRef<Record<string, () => void>>({});
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
+    {},
+  );
   const [showMenuId, setShowMenuId] = useState<string | null>(null);
 
- useEffect(() => {
-  let postUnsubscribers: (() => void)[] = [];
+  useEffect(() => {
+    let postUnsubscribers: (() => void)[] = [];
 
-  const loadUserPostsWithRealtimeListeners = async () => {
-    setLoadingPosts(true);
-    try {
-      const snapshot = await firestore()
-        .collection('posts')
-        .where('userId', '==', currentUid)
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      const docs = snapshot.docs;
-
-      const unsubFunctions = docs.map(doc => {
-        const postId = doc.id;
-
-        const unsubscribePost = firestore()
+    const loadUserPostsWithRealtimeListeners = async () => {
+      setLoadingPosts(true);
+      try {
+        const snapshot = await firestore()
           .collection('posts')
-          .doc(postId)
-          .onSnapshot(postSnap => {
-            if (!postSnap.exists) return;
-            const data = postSnap.data();
-            if (!data) {
-            setPosts(prev => prev.filter(p => p.id !== postSnap.id));
-            return;
-            }
-            const updatedPost: Post = {
+          .where('userId', '==', currentUid)
+          .orderBy('createdAt', 'desc')
+          .get();
+
+        const docs = snapshot.docs;
+
+        const unsubFunctions = docs.map(doc => {
+          const postId = doc.id;
+
+          const unsubscribePost = firestore()
+            .collection('posts')
+            .doc(postId)
+            .onSnapshot(postSnap => {
+              if (!postSnap.exists) return;
+              const data = postSnap.data();
+              if (!data) {
+                setPosts(prev => prev.filter(p => p.id !== postSnap.id));
+                return;
+              }
+              const updatedPost: Post = {
                 id: postSnap.id,
                 userId: data.userId ?? '',
                 username: data.username ?? '',
@@ -106,57 +117,59 @@ const ManagePostsScreen: React.FC = () => {
                 photoURL: data.photoURL ?? '',
                 likes: data.likes || [],
                 saves: data.saves || [],
-            };
+              };
 
-            setPosts(prev => {
-              const others = prev.filter(p => p.id !== postId);
-              return [...others, updatedPost].sort((a, b) =>{
-                const aDate = a.createdAt?.toDate?.() ?? new Date(0);
-                const bDate = b.createdAt?.toDate?.() ?? new Date(0);
-                return bDate.getTime() - aDate.getTime();
+              setPosts(prev => {
+                const others = prev.filter(p => p.id !== postId);
+                return [...others, updatedPost].sort((a, b) => {
+                  const aDate = a.createdAt?.toDate?.() ?? new Date(0);
+                  const bDate = b.createdAt?.toDate?.() ?? new Date(0);
+                  return bDate.getTime() - aDate.getTime();
                 });
+              });
             });
-          });
 
-        // 👇 Set up live comment count listener
-        const unsubscribeComments = firestore()
-          .collection('posts')
-          .doc(postId)
-          .collection('comments')
-          .onSnapshot(snapshot => {
-            setCommentCounts(prev => ({
-              ...prev,
-              [postId]: snapshot.size,
-            }));
-          });
+          // 👇 Set up live comment count listener
+          const unsubscribeComments = firestore()
+            .collection('posts')
+            .doc(postId)
+            .collection('comments')
+            .onSnapshot(snapshot => {
+              setCommentCounts(prev => ({
+                ...prev,
+                [postId]: snapshot.size,
+              }));
+            });
 
-        commentListenersRef.current[postId] = unsubscribeComments;
+          commentListenersRef.current[postId] = unsubscribeComments;
 
-        return unsubscribePost;
-      });
+          return unsubscribePost;
+        });
 
-      postUnsubscribers = unsubFunctions;
-    } catch (err) {
-      console.error('Error loading user posts:', err);
-    }
-    setLoadingPosts(false);
-  };
+        postUnsubscribers = unsubFunctions;
+      } catch (err) {
+        console.error('Error loading user posts:', err);
+      }
+      setLoadingPosts(false);
+    };
 
-  loadUserPostsWithRealtimeListeners();
+    loadUserPostsWithRealtimeListeners();
 
-  return () => {
-    postUnsubscribers.forEach(unsub => unsub());
-    Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
-  };
-}, []);
-
+    return () => {
+      postUnsubscribers.forEach(unsub => unsub());
+      Object.values(commentListenersRef.current).forEach(unsub => unsub?.());
+    };
+  }, []);
 
   const toggleLike = async (post: Post) => {
     const uid = currentUid || '';
     const newLikes = post.likes?.includes(uid)
       ? firestore.FieldValue.arrayRemove(uid)
       : firestore.FieldValue.arrayUnion(uid);
-    await firestore().collection('posts').doc(post.id).update({ likes: newLikes });
+    await firestore()
+      .collection('posts')
+      .doc(post.id)
+      .update({likes: newLikes});
   };
 
   const toggleSave = async (post: Post) => {
@@ -164,7 +177,10 @@ const ManagePostsScreen: React.FC = () => {
     const newSaves = post.saves?.includes(uid)
       ? firestore.FieldValue.arrayRemove(uid)
       : firestore.FieldValue.arrayUnion(uid);
-    await firestore().collection('posts').doc(post.id).update({ saves: newSaves });
+    await firestore()
+      .collection('posts')
+      .doc(post.id)
+      .update({saves: newSaves});
   };
 
   const openComments = async (postId: string) => {
@@ -179,9 +195,9 @@ const ManagePostsScreen: React.FC = () => {
       .orderBy('createdAt', 'desc')
       .onSnapshot(snapshot => {
         const cmts = snapshot.docs.map(doc => {
-        const data = doc.data() as Omit<Comment, 'id'>;
-        return { id: doc.id, ...data };
-      });
+          const data = doc.data() as Omit<Comment, 'id'>;
+          return {id: doc.id, ...data};
+        });
 
         setComments(cmts);
         setCommentsLoading(false);
@@ -199,10 +215,15 @@ const ManagePostsScreen: React.FC = () => {
 
   const addComment = async () => {
     if (!commentText.trim() || !activePostId) return;
-    const docUser = await firestore().collection('users').doc(currentUid!).get();
+    const docUser = await firestore()
+      .collection('users')
+      .doc(currentUid!)
+      .get();
     const dataUser = docUser.data() || {};
-    const commentUsername = anonymousComment ? 'Anonymous' : dataUser.username || 'Unknown';
-    const commentPhotoURL = anonymousComment ? '' : (dataUser.photoURL || '');
+    const commentUsername = anonymousComment
+      ? 'Anonymous'
+      : dataUser.username || 'Unknown';
+    const commentPhotoURL = anonymousComment ? '' : dataUser.photoURL || '';
 
     await firestore()
       .collection('posts')
@@ -238,133 +259,177 @@ const ManagePostsScreen: React.FC = () => {
 
   const deletePost = async (postId: string) => {
     Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        await firestore().collection('posts').doc(postId).delete();
-      }}
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await firestore().collection('posts').doc(postId).delete();
+        },
+      },
     ]);
   };
-
-  if (loadingPosts) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#FF7F6C" />
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Manage Posts</Text>
       </View>
-
-    {posts.length === 0 ? (
+      {loadingPosts ? (
+        <ActivityIndicator
+          size="large"
+          color="#FF6B5C"
+          style={{marginTop: 100}}
+        />
+      ) : posts.length === 0 ? (
         <View style={styles.noPostsContainer}>
-            <Icon name="sad-outline" size={60} color="#E195AB" />
-            <Text style={styles.noPostsText}>You haven't created any posts yet.</Text>
-            <TouchableOpacity style={styles.createPostBtn} onPress={() => navigation.navigate('AddPost')}>
-                <Text style={styles.createPostBtnText}>Create New Post</Text>
-            </TouchableOpacity>
+          <Icon name="sad-outline" size={60} color="#E195AB" />
+          <Text style={styles.noPostsText}>
+            You haven't created any posts yet.
+          </Text>
+          <TouchableOpacity
+            style={styles.createPostBtn}
+            onPress={() => navigation.navigate('AddPost')}>
+            <Text style={styles.createPostBtnText}>Create New Post</Text>
+          </TouchableOpacity>
         </View>
-     ) : (
-      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer}>
-        {posts.map((post) => {
-          const isAnon = post.anonymous === 'yes';
-          const liked = post.likes?.includes(currentUid!) ?? false;
-          const saved = post.saves?.includes(currentUid!) ?? false;
-          const avatarSource = isAnon
-            ? DEFAULT_AVATAR
-            : post.photoURL
-              ? { uri: post.photoURL }
+      ) : (
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContainer}>
+          {posts.map(post => {
+            const isAnon = post.anonymous === 'yes';
+            const liked = post.likes?.includes(currentUid!) ?? false;
+            const saved = post.saves?.includes(currentUid!) ?? false;
+            const avatarSource = isAnon
+              ? DEFAULT_AVATAR
+              : post.photoURL
+              ? {uri: post.photoURL}
               : DEFAULT_AVATAR;
 
-          return (
-            <View
-              key={post.id}
-              style={styles.card}
-              onLayout={(event) => {
-                postRefs.current[post.id] = event.nativeEvent.layout.y;
-              }}
-            >
-              <View style={styles.userRow}>
-                <Image source={avatarSource} style={styles.avatar} />
-                <View>
-                  <Text style={styles.username}>
-                    {isAnon ? 'Anonymous' : `@${post.username}`}
-                  </Text>
-                  <Text style={styles.time}>
-                    {post.createdAt?.toDate
-                      ? dayjs(post.createdAt.toDate()).fromNow()
-                      : 'Just now'}
-                  </Text>
+            return (
+              <View
+                key={post.id}
+                style={styles.card}
+                onLayout={event => {
+                  postRefs.current[post.id] = event.nativeEvent.layout.y;
+                }}>
+                <View style={styles.userRow}>
+                  <Image source={avatarSource} style={styles.avatar} />
+                  <View>
+                    <Text style={styles.username}>
+                      {isAnon ? 'Anonymous' : `@${post.username}`}
+                    </Text>
+                    <Text style={styles.time}>
+                      {post.createdAt?.toDate
+                        ? dayjs(post.createdAt.toDate()).fromNow()
+                        : 'Just now'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setShowMenuId(showMenuId === post.id ? null : post.id)
+                    }
+                    style={{marginLeft: 'auto'}}>
+                    <Icon name="ellipsis-vertical" size={20} />
+                  </TouchableOpacity>
                 </View>
-                 <TouchableOpacity onPress={() => setShowMenuId(showMenuId === post.id ? null : post.id)} style={{ marginLeft: 'auto' }}>
-                  <Icon name="ellipsis-vertical" size={20} />
-                </TouchableOpacity>
-              </View>
 
-              {showMenuId === post.id && (
-                <TouchableOpacity
+                {showMenuId === post.id && (
+                  <TouchableOpacity
                     activeOpacity={1}
                     onPress={() => setShowMenuId(null)} // ✅ Tap outside to close
-                    style={styles.menuOverlay}
-                >
-                    <TouchableOpacity activeOpacity={1} style={styles.menuContainer}>
-                    <TouchableOpacity style={styles.menuItem} onPress={() => {
-                      setShowMenuId(null);
-                      navigation.navigate('EditPost', { postId: post.id });
-                    }}>
-                      <Icon name="pencil-outline" size={18} color="#333" style={styles.menuIcon} />
-                      <Text style={styles.menuText}>Edit</Text>
-                    </TouchableOpacity>
+                    style={styles.menuOverlay}>
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      style={styles.menuContainer}>
+                      <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => {
+                          setShowMenuId(null);
+                          navigation.navigate('EditPost', {postId: post.id});
+                        }}>
+                        <Icon
+                          name="pencil-outline"
+                          size={18}
+                          color="#333"
+                          style={styles.menuIcon}
+                        />
+                        <Text style={styles.menuText}>Edit</Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem} onPress={() => {
-                        setShowMenuId(null);
-                        deletePost(post.id);
-                    }}>
-                        <Icon name="trash-outline" size={18} color="red" style={styles.menuIcon} />
-                        <Text style={[styles.menuText, { color: 'red' }]}>Delete</Text>
+                      <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => {
+                          setShowMenuId(null);
+                          deletePost(post.id);
+                        }}>
+                        <Icon
+                          name="trash-outline"
+                          size={18}
+                          color="red"
+                          style={styles.menuIcon}
+                        />
+                        <Text style={[styles.menuText, {color: 'red'}]}>
+                          Delete
+                        </Text>
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                    </TouchableOpacity>
-                </TouchableOpacity>
+                  </TouchableOpacity>
                 )}
 
-              <Text style={styles.postTitle}>{post.title}</Text>
-              <Text style={styles.postLocation}>{post.location}</Text>
-              <Text style={styles.postDesc}>{post.description}</Text>
-              <Image source={{ uri: post.imageUrl }} style={styles.postImg} />
+                <Text style={styles.postTitle}>{post.title}</Text>
+                <Text style={styles.postLocation}>{post.location}</Text>
+                <Text style={styles.postDesc}>{post.description}</Text>
+                <Image source={{uri: post.imageUrl}} style={styles.postImg} />
 
-              <View style={styles.iconRow}>
-                <View style={styles.iconWithCount}>
-                  <Text style={styles.countText}>{commentCounts[post.id] ?? 0}</Text>
-                  <TouchableOpacity onPress={() => openComments(post.id)}>
-                    <Icon name="chatbubble-outline" size={22} />
+                <View style={styles.iconRow}>
+                  <View style={styles.iconWithCount}>
+                    <Text style={styles.countText}>
+                      {commentCounts[post.id] ?? 0}
+                    </Text>
+                    <TouchableOpacity onPress={() => openComments(post.id)}>
+                      <Icon name="chatbubble-outline" size={22} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.iconWithCount}>
+                    <Text style={styles.countText}>
+                      {post.likes?.length ?? 0}
+                    </Text>
+                    <TouchableOpacity onPress={() => toggleLike(post)}>
+                      <Icon
+                        name={liked ? 'thumbs-up' : 'thumbs-up-outline'}
+                        size={22}
+                        color={liked ? '#C95792' : undefined}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.iconWithCount}>
+                    <Text style={styles.countText}>
+                      {post.saves?.length ?? 0}
+                    </Text>
+                    <TouchableOpacity onPress={() => toggleSave(post)}>
+                      <Icon
+                        name={saved ? 'bookmark' : 'bookmark-outline'}
+                        size={22}
+                        color={saved ? '#7C4585' : undefined}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity onPress={() => {}}>
+                    <Icon name="share-social-outline" size={22} />
                   </TouchableOpacity>
                 </View>
-                <View style={styles.iconWithCount}>
-                  <Text style={styles.countText}>{post.likes?.length ?? 0}</Text>
-                  <TouchableOpacity onPress={() => toggleLike(post)}>
-                    <Icon name={liked ? 'thumbs-up' : 'thumbs-up-outline'} size={22} color={liked ? '#C95792' : undefined} />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.iconWithCount}>
-                  <Text style={styles.countText}>{post.saves?.length ?? 0}</Text>
-                  <TouchableOpacity onPress={() => toggleSave(post)}>
-                    <Icon name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? '#7C4585' : undefined} />
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity onPress={() => {}}>
-                  <Icon name="share-social-outline" size={22} />
-                </TouchableOpacity>
               </View>
-            </View>
-          );
-        })}
-      </ScrollView> )}
+            );
+          })}
+        </ScrollView>
+      )}
 
       <Modal visible={!!activePostId} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -374,35 +439,57 @@ const ManagePostsScreen: React.FC = () => {
             ) : (
               <FlatList
                 data={comments}
-                renderItem={({ item }) => (
+                renderItem={({item}) => (
                   <View style={styles.commentItem}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
                       <Image
-                        source={item.anonymous === 'yes' || !item.photoURL ? DEFAULT_AVATAR : { uri: item.photoURL }}
+                        source={
+                          item.anonymous === 'yes' || !item.photoURL
+                            ? DEFAULT_AVATAR
+                            : {uri: item.photoURL}
+                        }
                         style={styles.avatar}
                       />
-                      <View style={{ marginLeft: 10, flex: 1 }}>
-                        <Text style={styles.username}>{item.anonymous === 'yes' ? 'Anonymous' : `@${item.username}`}</Text>
-                        <Text style={styles.time}>{item.createdAt?.toDate ? dayjs(item.createdAt.toDate()).fromNow() : 'Just now'}</Text>
+                      <View style={{marginLeft: 10, flex: 1}}>
+                        <Text style={styles.username}>
+                          {item.anonymous === 'yes'
+                            ? 'Anonymous'
+                            : `@${item.username}`}
+                        </Text>
+                        <Text style={styles.time}>
+                          {item.createdAt?.toDate
+                            ? dayjs(item.createdAt.toDate()).fromNow()
+                            : 'Just now'}
+                        </Text>
                       </View>
                       {item.userId === currentUid && (
-                        <TouchableOpacity onPress={() => deleteComment(item.id)}>
-                          <Icon name="trash-outline" size={20} color="#cc1414" />
+                        <TouchableOpacity
+                          onPress={() => deleteComment(item.id)}>
+                          <Icon
+                            name="trash-outline"
+                            size={20}
+                            color="#cc1414"
+                          />
                         </TouchableOpacity>
                       )}
                     </View>
-                    <Text style={{ marginTop: 4 }}>{item.text}</Text>
+                    <Text style={{marginTop: 4}}>{item.text}</Text>
                   </View>
                 )}
                 keyExtractor={item => item.id}
               />
             )}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 10,
+              }}>
               <Switch
                 value={anonymousComment}
                 onValueChange={setAnonymousComment}
               />
-              <Text style={{ marginLeft: 6 }}>Post anonymously</Text>
+              <Text style={{marginLeft: 6}}>Post anonymously</Text>
             </View>
             <View style={styles.commentInputRow}>
               <TextInput
@@ -428,10 +515,10 @@ const ManagePostsScreen: React.FC = () => {
 export default ManagePostsScreen;
 
 const styles = StyleSheet.create({
-   container: { 
-    flex:1, 
-    backgroundColor:'#eaf4f7', 
-    paddingTop:40 
+  container: {
+    flex: 1,
+    backgroundColor: '#eaf4f7',
+    paddingTop: 40,
   },
   header: {
     flexDirection: 'row',
@@ -456,126 +543,127 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
   },
-  scrollContainer: { 
-    paddingHorizontal:16, 
-    paddingBottom:100 
+  scrollContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
   },
-  card: { 
-    backgroundColor:'#fff', 
-    borderRadius:12, 
-    padding:12, 
-    marginBottom:16 
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
   },
-  userRow:{ 
-    flexDirection:'row', 
-    alignItems:'center', 
-    marginBottom:6 
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  avatar:{ 
-    width:35,
-    height:35,
-    borderRadius:20,
-    marginRight:10 
+  avatar: {
+    width: 35,
+    height: 35,
+    borderRadius: 20,
+    marginRight: 10,
   },
-  username:{ 
-    fontWeight:'bold' 
+  username: {
+    fontWeight: 'bold',
   },
-  time:{ 
-    fontSize:12, 
-    color:'#666' 
+  time: {
+    fontSize: 12,
+    color: '#666',
   },
-  postTitle:{ 
-    fontSize:16, 
-    fontWeight:'600', 
-    marginBottom:4, 
-    color:'#333' 
+  postTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#333',
   },
-  postLocation:{ 
-    fontSize:13, 
-    color:'#666', 
-    marginBottom:4 
+  postLocation: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
   },
-  postDesc:{ 
-    fontSize:14, 
-    color:'#333', 
-    marginBottom:8 
+  postDesc: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
   },
-  postImg:{ 
-    width:'100%', 
-    height:150, 
-    borderRadius:12, 
-    marginBottom:10 
+  postImg: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 10,
   },
-  iconRow:{ 
-    flexDirection:'row', 
-    justifyContent:'space-between', 
-    paddingHorizontal:10 
+  iconRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
   },
-  bottomNav:{ 
-    flexDirection:'row', 
-    justifyContent:'space-around', 
-    paddingVertical:10, borderTopWidth:1, 
-    borderTopColor:'#ddd', 
-    backgroundColor:'#fff', 
-    position:'absolute', 
-    bottom:0,
-    left:0,
-    right:0 
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
-  pin:{ 
-    position:'absolute', 
-    top:5, 
-    right:7 
+  pin: {
+    position: 'absolute',
+    top: 5,
+    right: 7,
   },
-  modalOverlay:{ 
-    flex:1, 
-    justifyContent:'flex-end', 
-    backgroundColor:'rgba(0,0,0,0.5)' 
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalContainer:{ 
-    backgroundColor:'#f9f9f9', 
-    padding:16, 
-    borderTopLeftRadius:20, 
-    borderTopRightRadius:20, 
-    maxHeight:'70%' 
+  modalContainer: {
+    backgroundColor: '#f9f9f9',
+    padding: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
   },
-  commentInputRow:{ 
-    flexDirection:'row', 
-    alignItems:'center', 
-    marginTop:12 
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
   },
-  commentInput:{ 
-    flex:1, 
-    borderWidth:1,
-    borderColor:'#ccc', 
-    borderRadius:20, 
-    paddingHorizontal:12, 
-    marginRight:10, 
-    height:40, 
-    backgroundColor:'#fff' 
+  commentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    marginRight: 10,
+    height: 40,
+    backgroundColor: '#fff',
   },
-  closeBtn:{ 
-    alignSelf:'center', 
-    marginTop:10 
+  closeBtn: {
+    alignSelf: 'center',
+    marginTop: 10,
   },
-  closeText:{ 
-    color:'red', 
-    fontWeight:'600' 
+  closeText: {
+    color: 'red',
+    fontWeight: '600',
   },
-  centered:{ 
-    flex:1, 
-    justifyContent:'center', 
-    alignItems:'center' 
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  loadingContainer:{ 
-    flex:1, 
-    justifyContent:'center', 
-    alignItems:'center' 
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   commentItem: {
     paddingVertical: 8,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#ccc'
+    borderBottomColor: '#ccc',
   },
   iconWithCount: {
     flexDirection: 'row',
@@ -587,70 +675,69 @@ const styles = StyleSheet.create({
     color: '#555',
     marginRight: 2,
   },
-   noPostsContainer: {
+  noPostsContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 90,
- },
+  },
   noPostsText: {
-   fontSize: 18,
-   color: '#666',
-   marginTop: 12,
-   textAlign: 'center',
-   paddingHorizontal: 20,
- },
- createPostBtn: {
-  marginTop: 20,
-  backgroundColor: '#248dad',
-  paddingVertical: 10,
-  paddingHorizontal: 20,
-  borderRadius: 25,
-},
-createPostBtnText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: '600',
-},
-menuOverlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  zIndex: 100,
-},
+    fontSize: 18,
+    color: '#666',
+    marginTop: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  createPostBtn: {
+    marginTop: 20,
+    backgroundColor: '#248dad',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+  },
+  createPostBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  menuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+  },
 
-menuContainer: {
-  position: 'absolute',
-  top: 30,
-  right: 10,
-  backgroundColor: '#fff',
-  borderRadius: 10,
-  paddingVertical: 12,
-  paddingHorizontal: 16,
-  elevation: 6,
-  shadowColor: '#000',
-  shadowOpacity: 0.1,
-  shadowOffset: { width: 0, height: 2 },
-  shadowRadius: 4,
-  borderWidth: 0.5,
-  borderColor: '#ccc',
-},
+  menuContainer: {
+    position: 'absolute',
+    top: 30,
+    right: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+  },
 
-menuItem: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingVertical: 8,
-},
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
 
-menuIcon: {
-  marginRight: 10,
-},
+  menuIcon: {
+    marginRight: 10,
+  },
 
-menuText: {
-  fontSize: 15,
-  color: '#333',
-},
-
+  menuText: {
+    fontSize: 15,
+    color: '#333',
+  },
 });
