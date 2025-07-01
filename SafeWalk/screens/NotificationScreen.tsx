@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import {useNavigation} from '@react-navigation/native';
+import firestore, {
+  FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { SwipeListView } from 'react-native-swipe-list-view';
+import {SwipeListView} from 'react-native-swipe-list-view';
 
 dayjs.extend(relativeTime);
 
@@ -36,23 +42,26 @@ const NotificationsScreen: React.FC = () => {
       .collection('notifications')
       .where('toUserId', '==', currentUid)
       .orderBy('createdAt', 'desc')
-      .onSnapshot(snapshot => {
-        if (!snapshot || snapshot.empty) {
-          setNotifications([]);
-          setLoading(false);
-          return;
-        }
+      .onSnapshot(
+        snapshot => {
+          if (!snapshot || snapshot.empty) {
+            setNotifications([]);
+            setLoading(false);
+            return;
+          }
 
-        const list = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Notification, 'id'>),
-        }));
-        setNotifications(list);
-        setLoading(false);
-      }, error => {
-        console.error('Error loading notifications:', error);
-        setLoading(false);
-      });
+          const list = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...(doc.data() as Omit<Notification, 'id'>),
+          }));
+          setNotifications(list);
+          setLoading(false);
+        },
+        error => {
+          console.error('Error loading notifications:', error);
+          setLoading(false);
+        },
+      );
 
     return () => unsubscribe();
   }, [currentUid]);
@@ -72,25 +81,28 @@ const NotificationsScreen: React.FC = () => {
     setNotifications(prev => prev.filter(notif => notif.id !== id));
   };
 
-  const renderItem = ({ item }: { item: Notification }) => (
+  const renderItem = ({item}: {item: Notification}) => (
     <View style={styles.notificationBox}>
       <Text style={styles.message}>
-        {item.fromUsername === 'Anonymous' ? 'An anonymous user' : `@${item.fromUsername}`}{' '}
+        {item.fromUsername === 'Anonymous'
+          ? 'An anonymous user'
+          : `@${item.fromUsername}`}{' '}
         added a new post: {item.postTitle}
       </Text>
       <View style={styles.timeRow}>
-        <Text style={styles.time}>{dayjs(item.createdAt.toDate()).fromNow()}</Text>
+        <Text style={styles.time}>
+          {dayjs(item.createdAt.toDate()).fromNow()}
+        </Text>
         {!item.read && <View style={styles.redDot} />}
       </View>
     </View>
   );
 
-  const renderHiddenItem = (data: { item: Notification }) => (
+  const renderHiddenItem = (data: {item: Notification}) => (
     <View style={styles.rowBack}>
       <TouchableOpacity
         style={styles.deleteButton}
-        onPress={() => handleDeleteNotification(data.item.id)}
-      >
+        onPress={() => handleDeleteNotification(data.item.id)}>
         <Text style={styles.deleteText}>Delete</Text>
       </TouchableOpacity>
     </View>
@@ -99,31 +111,44 @@ const NotificationsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}>
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>Notifications</Text>
       </View>
 
       {loading ? (
-          <ActivityIndicator size="large" color="#FF6B5C" style={{ marginTop: 100 }} />
-        ) : notifications.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 90, }}>
-             <Icon name="happy-outline" size={60} color="#E195AB" />
-            <Text style={styles.noPostsText}>You are updated, no new notifications yet.</Text>
-          </View>
-        ) : (
-          <SwipeListView
-            data={notifications}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            renderHiddenItem={renderHiddenItem}
-            rightOpenValue={-75}
-            contentContainerStyle={styles.scrollContainer}
-            disableRightSwipe
-          />
-        )}
-
+        <ActivityIndicator
+          size="large"
+          color="#FF6B5C"
+          style={{marginTop: 100}}
+        />
+      ) : notifications.length === 0 ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingBottom: 90,
+          }}>
+          <Icon name="happy-outline" size={60} color="#E195AB" />
+          <Text style={styles.noPostsText}>
+            You are updated, no new notifications yet.
+          </Text>
+        </View>
+      ) : (
+        <SwipeListView
+          data={notifications}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          renderHiddenItem={renderHiddenItem}
+          rightOpenValue={-75}
+          contentContainerStyle={styles.scrollContainer}
+          disableRightSwipe
+        />
+      )}
 
       <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
         <Text style={styles.clearButtonText}>Clear</Text>
