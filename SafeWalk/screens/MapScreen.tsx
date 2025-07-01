@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import {useNavigation} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../App';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -28,12 +28,17 @@ const MapScreen: React.FC = () => {
         </TouchableOpacity>
         <Text style={styles.title}>Safety Map</Text>
         {/* Placeholder for alignment */}
-        <View style={{ width: 26 }} />
+        <View style={{width: 26}} />
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Icon name="search-outline" size={20} color="#999" style={styles.searchIcon} />
+        <Icon
+          name="search-outline"
+          size={20}
+          color="#999"
+          style={styles.searchIcon}
+        />
         <TextInput
           placeholder="Search..."
           placeholderTextColor="#999"
@@ -52,25 +57,30 @@ const MapScreen: React.FC = () => {
       />
       <View style={styles.bottomNav}>
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-            <Icon name="home-outline" size={26} color="#000" />
+          <Icon name="home-outline" size={26} color="#000" />
         </TouchableOpacity>
-          
+
         {/* Updated: Touchable icon to navigate to AddPost screen */}
         <TouchableOpacity onPress={() => navigation.navigate('AddPost')}>
-            <Icon name="add-circle-outline" size={26} color="#000" />
+          <Icon name="add-circle-outline" size={26} color="#000" />
         </TouchableOpacity>
-      
-        <TouchableOpacity onPress={() => navigation.navigate('Updates')}>
-            <Icon name="document-text-outline" size={26} color="#000" />
+
+        <TouchableOpacity onPress={() => navigation.navigate('Updates', {})}>
+          <Icon name="document-text-outline" size={26} color="#000" />
         </TouchableOpacity>
-        
-            <View style={styles.mapWithPin}>
-                <TouchableOpacity onPress={() => navigation.navigate('Map')}>
-                  <Icon name="map-outline" size={30} color="#000" />
-                  <Icon name="location-outline" size={14} color="#000" style={styles.pinOnMap} />
-                </TouchableOpacity>
-            </View>
+
+        <View style={styles.mapWithPin}>
+          <TouchableOpacity onPress={() => navigation.navigate('Map')}>
+            <Icon name="map-outline" size={30} color="#000" />
+            <Icon
+              name="location-outline"
+              size={14}
+              color="#000"
+              style={styles.pinOnMap}
+            />
+          </TouchableOpacity>
         </View>
+      </View>
     </View>
   );
 };

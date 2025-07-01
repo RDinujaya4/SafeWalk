@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {View, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import FastImage from 'react-native-fast-image';
-import { RootStackParamList } from '../App';
+import {RootStackParamList} from '../App';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 };
 
-const SplashScreen: React.FC<Props> = ({ navigation }) => {
+const SplashScreen: React.FC<Props> = ({navigation}) => {
   return (
     <View style={styles.container}>
       <FastImage
@@ -18,9 +18,11 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       <Text style={styles.title}>SafeWalk</Text>
-      <Text style={styles.subtitle}>We Secure Your{"\n"}World</Text>
+      <Text style={styles.subtitle}>We Secure Your{'\n'}World</Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('Login')}>
         <Text style={styles.buttonText}>Get Start</Text>
       </TouchableOpacity>
     </View>
@@ -61,7 +63,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     elevation: 5,
   },
   buttonText: {

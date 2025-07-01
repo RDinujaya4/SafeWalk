@@ -1,15 +1,9 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import {useNavigation} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../App';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -35,16 +29,14 @@ const AdminDashboardScreen: React.FC = () => {
       <View style={styles.cardContainer}>
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate('UpdateMap')}
-        >
+          onPress={() => navigation.navigate('UpdateMap')}>
           <Icon name="map-outline" size={36} color="#007bff" />
           <Text style={styles.cardTitle}>Update Map</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate('SafetyMap')}
-        >
+          onPress={() => navigation.navigate('SafetyMap')}>
           <Icon name="shield-checkmark-outline" size={36} color="#28a745" />
           <Text style={styles.cardTitle}>Safety Map</Text>
         </TouchableOpacity>
@@ -95,7 +87,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 5,
   },

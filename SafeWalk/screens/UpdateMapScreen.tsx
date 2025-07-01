@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import {useNavigation} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../App';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -45,7 +45,8 @@ const UpdateMapScreen: React.FC = () => {
             </View>
 
             <Text style={styles.postText}>
-              Increase of car theft in Colombo 7, make sure to lock your vehicles.
+              Increase of car theft in Colombo 7, make sure to lock your
+              vehicles.
             </Text>
 
             <Image
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 1, height: 1 },
+    shadowOffset: {width: 1, height: 1},
     shadowRadius: 3,
     elevation: 3,
   },
