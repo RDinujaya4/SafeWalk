@@ -76,6 +76,7 @@ const ManagePostsScreen: React.FC = () => {
     {},
   );
   const [showMenuId, setShowMenuId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     let postUnsubscribers: (() => void)[] = [];
@@ -270,6 +271,13 @@ const ManagePostsScreen: React.FC = () => {
     ]);
   };
 
+  const filteredPosts = posts.filter(
+    post =>
+      post.title.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+      post.location.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+      post.description.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -280,6 +288,24 @@ const ManagePostsScreen: React.FC = () => {
         </TouchableOpacity>
         <Text style={styles.title}>Manage Posts</Text>
       </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchBar}>
+        <Icon
+          name="search-outline"
+          size={20}
+          color="#888"
+          style={styles.searchIcon}
+        />
+        <TextInput
+          placeholder="Search..."
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor="#999"
+        />
+      </View>
+
       {loadingPosts ? (
         <ActivityIndicator
           size="large"
@@ -302,7 +328,7 @@ const ManagePostsScreen: React.FC = () => {
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={styles.scrollContainer}>
-          {posts.map(post => {
+          {filteredPosts.map(post => {
             const isAnon = post.anonymous === 'yes';
             const liked = post.likes?.includes(currentUid!) ?? false;
             const saved = post.saves?.includes(currentUid!) ?? false;
@@ -524,7 +550,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 25,
+    marginBottom: 5,
   },
   title: {
     fontSize: 22,
@@ -545,7 +571,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 50,
   },
   card: {
     backgroundColor: '#fff',
@@ -708,7 +734,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 100,
   },
-
   menuContainer: {
     position: 'absolute',
     top: 30,
@@ -725,19 +750,35 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: '#ccc',
   },
-
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
   },
-
   menuIcon: {
     marginRight: 10,
   },
-
   menuText: {
     fontSize: 15,
     color: '#333',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 5,
+    alignItems: 'center',
+    marginVertical: 20,
+    width: 360,
+    marginLeft: 17,
+  },
+  searchIcon: {
+    marginRight: 5,
+    marginLeft: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
   },
 });
