@@ -25,6 +25,7 @@ interface Notification {
   fromUsername: string;
   type: 'new_post';
   postTitle: string;
+  postId: string;
   createdAt: FirebaseFirestoreTypes.Timestamp;
   read: boolean;
 }
@@ -81,22 +82,33 @@ const NotificationsScreen: React.FC = () => {
     setNotifications(prev => prev.filter(notif => notif.id !== id));
   };
 
-  const renderItem = ({item}: {item: Notification}) => (
-    <View style={styles.notificationBox}>
-      <Text style={styles.message}>
-        {item.fromUsername === 'Anonymous'
-          ? 'An anonymous user'
-          : `@${item.fromUsername}`}{' '}
-        added a new post: {item.postTitle}
-      </Text>
-      <View style={styles.timeRow}>
-        <Text style={styles.time}>
-          {dayjs(item.createdAt.toDate()).fromNow()}
+  const handleNotificationPress = async (item: Notification) => {
+  try {
+    await firestore().collection('notifications').doc(item.id).update({ read: true });
+    // @ts-ignore
+    navigation.navigate('Updates', { postId: item.postId });
+  } catch (error) {
+    console.error('Failed to mark notification as read or navigate:', error);
+  }
+  };
+
+  const renderItem = ({ item }: { item: Notification }) => (
+    <TouchableOpacity onPress={() => handleNotificationPress(item)}>
+      <View style={styles.notificationBox}>
+        <Text style={styles.message}>
+          {item.fromUsername === 'Anonymous'
+            ? 'An anonymous user'
+            : `@${item.fromUsername}`}{' '}
+          added a new post: {item.postTitle}
         </Text>
-        {!item.read && <View style={styles.redDot} />}
+        <View style={styles.timeRow}>
+          <Text style={styles.time}>{dayjs(item.createdAt.toDate()).fromNow()}</Text>
+          {!item.read && <View style={styles.redDot} />}
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
+
 
   const renderHiddenItem = (data: {item: Notification}) => (
     <View style={styles.rowBack}>
