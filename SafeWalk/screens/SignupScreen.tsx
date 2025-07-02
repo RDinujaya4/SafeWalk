@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,9 @@ import {
   Image,
 } from 'react-native';
 import Spinner from 'react-native-loading-spinner-overlay';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import Icon from 'react-native-vector-icons/Ionicons';
+import {RootStackParamList} from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
@@ -18,7 +19,7 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Signup'>;
 };
 
-const SignupScreen: React.FC<Props> = ({ navigation }) => {
+const SignupScreen: React.FC<Props> = ({navigation}) => {
   const [username, setUsername] = useState('');
   const [isUsernameTaken, setIsUsernameTaken] = useState(false);
   const [email, setEmail] = useState('');
@@ -26,6 +27,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   // Real-time username check
   useEffect(() => {
@@ -64,7 +66,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (!isPasswordStrong(password)) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters long and include one uppercase letter, one number, and one special character.');
+      Alert.alert(
+        'Weak Password',
+        'Password must be at least 8 characters long and include one uppercase letter, one number, and one special character.',
+      );
       return;
     }
 
@@ -76,7 +81,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+      const userCredential = await auth().createUserWithEmailAndPassword(
+        email,
+        password,
+      );
       const user = userCredential.user;
 
       await firestore().collection('users').doc(user.uid).set({
@@ -96,11 +104,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
       const userData = docSnap.data();
 
       if (userData?.role === 'admin') {
-        navigation.reset({ index: 0, routes: [{ name: 'AdminDashboard' }] });
+        navigation.reset({index: 0, routes: [{name: 'AdminDashboard'}]});
       } else {
-        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+        navigation.reset({index: 0, routes: [{name: 'Home'}]});
       }
-
     } catch (error: any) {
       console.log('Signup Error:', error);
       Alert.alert('Signup Error', error.message);
@@ -111,7 +118,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Spinner visible={loading} textContent="Signing up..." textStyle={{ color: '#fff' }} />
+      <Spinner
+        visible={loading}
+        textContent="Signing up..."
+        textStyle={{color: '#fff'}}
+      />
 
       {/* Logo Section */}
       <View style={styles.header}>
@@ -128,7 +139,7 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           placeholder="Username"
           placeholderTextColor="#888"
           value={username}
-          onChangeText={(text) => {
+          onChangeText={text => {
             setUsername(text);
             setIsUsernameTaken(false);
           }}
@@ -148,33 +159,54 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           autoCapitalize="none"
         />
 
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#888"
-          secureTextEntry
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            setPasswordError(
-              isPasswordStrong(text)
-                ? ''
-                : 'Use 8+ characters, 1 uppercase, 1 number, 1 symbol'
-            );
-          }}
-          style={styles.input}
-        />
-        {passwordError !== '' && (
-          <Text style={styles.warning}>{passwordError}</Text>
-        )}
-
-        <TextInput
-          placeholder="Confirm Password"
-          placeholderTextColor="#888"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          style={styles.input}
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#888"
+            secureTextEntry={!passwordVisible}
+            value={password}
+            onChangeText={text => {
+              setPassword(text);
+              setPasswordError(
+                isPasswordStrong(text)
+                  ? ''
+                  : 'Use 8+ characters, 1 uppercase, 1 number, 1 symbol',
+              );
+            }}
+            style={styles.input}
+          />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setPasswordVisible(!passwordVisible)}>
+            <Icon
+              name={passwordVisible ? 'eye-off' : 'eye'}
+              size={22}
+              color="#666"
+            />
+          </TouchableOpacity>
+          {passwordError !== '' && (
+            <Text style={styles.warning}>{passwordError}</Text>
+          )}
+        </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            placeholder="Confirm Password"
+            placeholderTextColor="#888"
+            secureTextEntry={!passwordVisible}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            style={styles.input}
+          />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setPasswordVisible(!passwordVisible)}>
+            <Icon
+              name={passwordVisible ? 'eye-off' : 'eye'}
+              size={22}
+              color="#666"
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
           <Text style={styles.signupButtonText}>Sign UP</Text>
@@ -185,11 +217,16 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.loginWithText}>Login With</Text>
           <View style={styles.divider} />
         </View>
-        <Image source={require('../assets/google.png')} style={styles.googleIcon} />
+        <Image
+          source={require('../assets/google.png')}
+          style={styles.googleIcon}
+        />
 
         <Text style={styles.footerText}>
           Already have an account?{' '}
-          <Text style={styles.linkText} onPress={() => navigation.navigate('Login')}>
+          <Text
+            style={styles.linkText}
+            onPress={() => navigation.navigate('Login')}>
             click here
           </Text>
         </Text>
@@ -210,7 +247,7 @@ const styles = StyleSheet.create({
     marginTop: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 30
+    marginRight: 30,
   },
   logo: {
     width: 160,
@@ -302,5 +339,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     color: '#fff',
     fontWeight: '500',
+  },
+  inputWrapper: {
+    width: '100%',
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    top: 14,
   },
 });

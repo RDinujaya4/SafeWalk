@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import Icon from 'react-native-vector-icons/Ionicons';
+import {RootStackParamList} from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import Spinner from 'react-native-loading-spinner-overlay';
@@ -18,10 +19,11 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
 };
 
-const LoginScreen: React.FC<Props> = ({ navigation }) => {
+const LoginScreen: React.FC<Props> = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -32,7 +34,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      const userCredential = await auth().signInWithEmailAndPassword(
+        email,
+        password,
+      );
       const user = userCredential.user;
       const userDoc = await firestore().collection('users').doc(user.uid).get();
 
@@ -44,9 +49,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       const userData = userDoc.data();
 
       if (userData?.role === 'admin') {
-        navigation.reset({ index: 0, routes: [{ name: 'AdminDashboard' }] });
+        navigation.reset({index: 0, routes: [{name: 'AdminDashboard'}]});
       } else if (userData?.role === 'user') {
-        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+        navigation.reset({index: 0, routes: [{name: 'Home'}]});
       } else {
         Alert.alert('Error', 'User role is invalid or missing.');
       }
@@ -59,7 +64,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Spinner visible={loading} textContent="Logging in..." textStyle={{ color: '#fff' }} />
+      <Spinner
+        visible={loading}
+        textContent="Logging in..."
+        textStyle={{color: '#fff'}}
+      />
 
       {/* Top Section */}
       <View style={styles.topSection}>
@@ -84,14 +93,25 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           autoCapitalize="none"
         />
 
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#888"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#888"
+            secureTextEntry={!passwordVisible}
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+          />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setPasswordVisible(!passwordVisible)}>
+            <Icon
+              name={passwordVisible ? 'eye-off' : 'eye'}
+              size={22}
+              color="#666"
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotText}>Forgot Password</Text>
@@ -114,7 +134,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         <Text style={styles.footerText}>
           Don’t have an account?{' '}
-          <Text style={styles.clickHere} onPress={() => navigation.navigate('Signup')}>
+          <Text
+            style={styles.clickHere}
+            onPress={() => navigation.navigate('Signup')}>
             click here
           </Text>
         </Text>
@@ -134,7 +156,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 50,
     flexDirection: 'row',
-    marginLeft: 30
+    marginLeft: 30,
   },
   logo: {
     width: 160,
@@ -188,7 +210,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 25,
     fontWeight: '500',
-    marginLeft: 5
+    marginLeft: 5,
   },
   loginButton: {
     backgroundColor: '#fff',
@@ -231,5 +253,15 @@ const styles = StyleSheet.create({
   clickHere: {
     color: '#000',
     fontWeight: 'bold',
+  },
+  inputWrapper: {
+    width: '100%',
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    top: 14,
   },
 });
