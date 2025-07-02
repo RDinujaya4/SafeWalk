@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,15 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
+  // Real-time username check
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      checkUsername(username);
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [username]);
 
   const checkUsername = async (name: string) => {
     if (!name.trim()) return;
@@ -37,6 +46,12 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const isPasswordStrong = (pass: string) => {
+    const strongRegex =
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{8,}$/;
+    return strongRegex.test(pass);
+  };
+
   const handleSignup = async () => {
     if (!username || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'All fields are required.');
@@ -45,6 +60,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
     if (isUsernameTaken) {
       Alert.alert('Error', 'Username is already taken.');
+      return;
+    }
+
+    if (!isPasswordStrong(password)) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters long and include one uppercase letter, one number, and one special character.');
       return;
     }
 
@@ -112,7 +132,6 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
             setUsername(text);
             setIsUsernameTaken(false);
           }}
-          onBlur={() => checkUsername(username)}
           style={styles.input}
         />
         {isUsernameTaken && (
@@ -134,9 +153,19 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
           placeholderTextColor="#888"
           secureTextEntry
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            setPasswordError(
+              isPasswordStrong(text)
+                ? ''
+                : 'Use 8+ characters, 1 uppercase, 1 number, 1 symbol'
+            );
+          }}
           style={styles.input}
         />
+        {passwordError !== '' && (
+          <Text style={styles.warning}>{passwordError}</Text>
+        )}
 
         <TextInput
           placeholder="Confirm Password"
@@ -152,10 +181,10 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.dividerContainer}>
-                  <View style={styles.divider} />
-                  <Text style={styles.loginWithText}>Login With</Text>
-                  <View style={styles.divider} />
-                </View>
+          <View style={styles.divider} />
+          <Text style={styles.loginWithText}>Login With</Text>
+          <View style={styles.divider} />
+        </View>
         <Image source={require('../assets/google.png')} style={styles.googleIcon} />
 
         <Text style={styles.footerText}>
@@ -178,7 +207,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    marginTop: 50,
+    marginTop: 40,
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 30
@@ -203,7 +232,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 40,
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 30,
+    paddingTop: 10,
   },
   cardHandle: {
     width: 50,
@@ -244,15 +273,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  orText: {
-    color: '#fff',
-    marginTop: 10,
-    marginBottom: 5,
-  },
   googleIcon: {
-    width: 45,
-    height: 45,
-    marginBottom: 15,
+    width: 40,
+    height: 40,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   footerText: {
     color: '#fff',
@@ -266,7 +291,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   divider: {
     flex: 1,
