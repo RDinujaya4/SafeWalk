@@ -21,6 +21,7 @@ import ManagePostsScreen from './screens/ManagePostsScreen';
 import EditPostScreen from './screens/EditPostScreen';
 import StartScreen from './screens/StartScreen';
 import IntroSliderScreen from './screens/IntroSliderScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -42,6 +43,7 @@ export type RootStackParamList = {
   SavedPosts: undefined;
   ManagePosts: undefined;
   EditPost: { postId: string };
+  ForgotPassword: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -69,6 +71,7 @@ const App = () => {
         <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
         <Stack.Screen name="ManagePosts" component={ManagePostsScreen} />
         <Stack.Screen name="EditPost" component={EditPostScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
