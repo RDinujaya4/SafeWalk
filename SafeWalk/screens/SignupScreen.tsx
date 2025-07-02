@@ -6,8 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
 import Spinner from 'react-native-loading-spinner-overlay';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
@@ -56,11 +56,9 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // 1. Create Firebase Auth account
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // 2. Save user data to 'users'
       await firestore().collection('users').doc(user.uid).set({
         uid: user.uid,
         username,
@@ -69,13 +67,11 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      // 3. Reserve username
       await firestore().collection('usernames').doc(username).set({
         uid: user.uid,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      // 4. Redirect based on role
       const docSnap = await firestore().collection('users').doc(user.uid).get();
       const userData = docSnap.data();
 
@@ -97,71 +93,74 @@ const SignupScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Spinner visible={loading} textContent="Signing up..." textStyle={{ color: '#fff' }} />
 
-      <Text style={styles.title}>Signup</Text>
+      {/* Logo Section */}
+      <View style={styles.header}>
+        <Image source={require('../assets/logo.png')} style={styles.logo} />
+        <Text style={styles.logoText}>SafeWalk</Text>
+      </View>
 
-      <FastImage
-        source={require('../assets/signup.gif')}
-        style={styles.image}
-        resizeMode={FastImage.resizeMode.contain}
-      />
+      {/* Form Card */}
+      <View style={styles.card}>
+        <View style={styles.cardHandle} />
+        <Text style={styles.title}>Signup</Text>
 
-      <TextInput
-        placeholder="Username"
-        placeholderTextColor="#888"
-        value={username}
-        onChangeText={(text) => {
-          setUsername(text);
-          setIsUsernameTaken(false); // reset when typing
-        }}
-        onBlur={() => checkUsername(username)}
-        style={styles.input}
-      />
-      {isUsernameTaken && (
-        <Text style={{ color: 'red', marginBottom: 10 }}>Username already taken</Text>
-      )}
+        <TextInput
+          placeholder="Username"
+          placeholderTextColor="#888"
+          value={username}
+          onChangeText={(text) => {
+            setUsername(text);
+            setIsUsernameTaken(false);
+          }}
+          onBlur={() => checkUsername(username)}
+          style={styles.input}
+        />
+        {isUsernameTaken && (
+          <Text style={styles.warning}>Username already taken</Text>
+        )}
 
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor="#888"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#888"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+        />
 
-      <TextInput
-        placeholder="Confirm Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="Confirm Password"
+          placeholderTextColor="#888"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          style={styles.input}
+        />
 
-      <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
-        <Text style={styles.signupButtonText}>Create Account</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
+          <Text style={styles.signupButtonText}>Sign UP</Text>
+        </TouchableOpacity>
 
-      <View style={styles.footerContainer}>
+        <View style={styles.dividerContainer}>
+                  <View style={styles.divider} />
+                  <Text style={styles.loginWithText}>Login With</Text>
+                  <View style={styles.divider} />
+                </View>
+        <Image source={require('../assets/google.png')} style={styles.googleIcon} />
+
         <Text style={styles.footerText}>
           Already have an account?{' '}
           <Text style={styles.linkText} onPress={() => navigation.navigate('Login')}>
-            click here
-          </Text>
-        </Text>
-        <Text style={styles.footerText}>
-          Admin Login?{' '}
-          <Text style={styles.linkText} onPress={() => navigation.navigate('AdminLogin')}>
             click here
           </Text>
         </Text>
@@ -175,55 +174,108 @@ export default SignupScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#CDF2D3',
-    paddingHorizontal: 20,
-    justifyContent: 'center',
+    backgroundColor: '#E8F9FF',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 35,
-    color: '#FF6B61',
-    fontWeight: 'bold',
+  header: {
+    marginTop: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 30
+  },
+  logo: {
+    width: 160,
+    height: 160,
+    resizeMode: 'contain',
+  },
+  logoText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#2E5077',
+    marginLeft: 10,
+  },
+  card: {
+    marginTop: 30,
+    backgroundColor: '#2E5077',
+    width: '100%',
+    flex: 1,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 30,
+  },
+  cardHandle: {
+    width: 50,
+    height: 5,
+    backgroundColor: '#fff',
+    borderRadius: 10,
     marginBottom: 10,
   },
-  image: {
-    width: 200,
-    height: 150,
-    marginBottom: 30,
+  title: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#FF6B61',
+    marginBottom: 15,
   },
   input: {
     backgroundColor: '#fff',
     width: '100%',
     padding: 14,
     borderRadius: 30,
-    marginBottom: 15,
+    marginBottom: 12,
     fontSize: 16,
-    elevation: 2,
   },
-  signupButton: {
-    backgroundColor: '#0DA574',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    width: '100%',
-    alignItems: 'center',
-    marginVertical: 20,
-    elevation: 4,
-  },
-  signupButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  footerText: {
-    color: '#000',
+  warning: {
+    color: '#FF6B61',
+    marginBottom: 10,
     fontSize: 14,
   },
-  linkText: {
-    color: '#0000FF',
-    fontWeight: '500',
+  signupButton: {
+    backgroundColor: '#fff',
+    borderRadius: 30,
+    paddingVertical: 14,
+    paddingHorizontal: 145,
+    marginTop: 10,
+    marginBottom: 15,
   },
-  footerContainer: {
+  signupButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  orText: {
+    color: '#fff',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  googleIcon: {
+    width: 45,
+    height: 45,
+    marginBottom: 15,
+  },
+  footerText: {
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 10,
+  },
+  linkText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  divider: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: '#fff',
+  },
+  loginWithText: {
+    marginHorizontal: 10,
+    color: '#fff',
+    fontWeight: '500',
   },
 });

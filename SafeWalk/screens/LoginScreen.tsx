@@ -5,9 +5,9 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Image,
   Alert,
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import auth from '@react-native-firebase/auth';
@@ -34,7 +34,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const userCredential = await auth().signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
-
       const userDoc = await firestore().collection('users').doc(user.uid).get();
 
       if (!userDoc.exists) {
@@ -62,42 +61,61 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <Spinner visible={loading} textContent="Logging in..." textStyle={{ color: '#fff' }} />
 
-      <Text style={styles.title}>Login</Text>
+      {/* Top Section */}
+      <View style={styles.topSection}>
+        <Image source={require('../assets/logo.png')} style={styles.logo} />
+        <Text style={styles.logoText}>SafeWalk</Text>
+      </View>
 
-      <FastImage
-        source={require('../assets/login.gif')}
-        style={styles.image}
-        resizeMode={FastImage.resizeMode.contain}
-      />
+      {/* Bottom Section */}
+      <View style={styles.card}>
+        <View style={styles.handleBar} />
 
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+        <Text style={styles.loginTitle}>Login</Text>
+        <Text style={styles.subText}>Welcome Back</Text>
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="Email"
+          placeholderTextColor="#888"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
 
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Login</Text>
-      </TouchableOpacity>
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#888"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={styles.input}
+        />
 
-      <View style={styles.footerContainer}>
+        <TouchableOpacity>
+          <Text style={styles.forgotText}>Forgot Password</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.loginWithText}>Login With</Text>
+          <View style={styles.divider} />
+        </View>
+
+        <Image
+          source={require('../assets/google.png')}
+          style={styles.googleIcon}
+        />
+
         <Text style={styles.footerText}>
           Don’t have an account?{' '}
-          <Text style={styles.linkText} onPress={() => navigation.navigate('Signup')}>
-            Sign up
+          <Text style={styles.clickHere} onPress={() => navigation.navigate('Signup')}>
+            click here
           </Text>
         </Text>
       </View>
@@ -110,55 +128,108 @@ export default LoginScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#CDF2D3',
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#E8F9FF',
   },
-  title: {
-    fontSize: 35,
-    color: '#FF6B61',
-    fontWeight: 'bold',
+  topSection: {
+    alignItems: 'center',
+    marginTop: 50,
+    flexDirection: 'row',
+    marginLeft: 30
+  },
+  logo: {
+    width: 160,
+    height: 160,
+    resizeMode: 'contain',
+  },
+  logoText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#2E5077',
+    marginLeft: 10,
+  },
+  card: {
+    flex: 1,
+    backgroundColor: '#2E5077',
+    marginTop: 30,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 20,
+    paddingTop: 25,
+  },
+  handleBar: {
+    width: 60,
+    height: 5,
+    backgroundColor: '#ccc',
+    alignSelf: 'center',
+    borderRadius: 5,
     marginBottom: 10,
   },
-  image: {
-    width: 200,
-    height: 150,
+  loginTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FF6B61',
+    textAlign: 'center',
+  },
+  subText: {
+    textAlign: 'center',
+    color: '#fff',
     marginBottom: 30,
   },
   input: {
     backgroundColor: '#fff',
-    width: '100%',
-    padding: 14,
-    borderRadius: 30,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
     marginBottom: 15,
-    fontSize: 16,
-    elevation: 2,
+  },
+  forgotText: {
+    color: '#fff',
+    alignSelf: 'flex-start',
+    marginBottom: 25,
+    fontWeight: '500',
+    marginLeft: 5
   },
   loginButton: {
-    backgroundColor: '#0DA574',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
+    backgroundColor: '#fff',
     borderRadius: 30,
-    width: '100%',
+    paddingVertical: 14,
     alignItems: 'center',
-    marginVertical: 20,
-    elevation: 4,
+    marginBottom: 25,
   },
   loginButtonText: {
-    color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-  },
-  footerText: {
     color: '#000',
-    fontSize: 14,
   },
-  linkText: {
-    color: '#0000FF',
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  divider: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: '#fff',
+  },
+  loginWithText: {
+    marginHorizontal: 10,
+    color: '#fff',
     fontWeight: '500',
   },
-  footerContainer: {
-    alignItems: 'center',
+  googleIcon: {
+    width: 40,
+    height: 40,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  footerText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 13,
+  },
+  clickHere: {
+    color: '#000',
+    fontWeight: 'bold',
   },
 });
