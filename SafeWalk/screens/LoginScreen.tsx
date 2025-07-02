@@ -93,7 +93,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.input}
         />
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotText}>Forgot Password</Text>
         </TouchableOpacity>
 
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   divider: {
     flex: 1,
