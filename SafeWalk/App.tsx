@@ -19,9 +19,13 @@ import SettingsScreen from './screens/SettingsScreen';
 import SavedPostsScreen from './screens/SavedPostsScreen';
 import ManagePostsScreen from './screens/ManagePostsScreen';
 import EditPostScreen from './screens/EditPostScreen';
+import StartScreen from './screens/StartScreen';
+import IntroSliderScreen from './screens/IntroSliderScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
+  IntroSlider: undefined;
+  Start: undefined;
   Login: undefined;
   Signup: undefined;
   Home: undefined;
@@ -47,6 +51,8 @@ const App = () => {
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="IntroSlider" component={IntroSliderScreen} />
+        <Stack.Screen name="Start" component={StartScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
