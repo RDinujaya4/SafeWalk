@@ -24,10 +24,9 @@ const SplashScreen = () => {
   const textTranslateX = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const slidePromptY = useRef(new Animated.Value(30)).current;
-  //const taglineOpacity = useRef(new Animated.Value(0)).current;
 
   const taglineOpacity = useRef(new Animated.Value(0)).current;
-  const taglineTranslateY = useRef(new Animated.Value(30)).current; // start below
+  const taglineTranslateY = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.sequence([
@@ -90,29 +89,30 @@ const SplashScreen = () => {
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
-      <Animated.View style={[styles.row, {opacity: contentOpacity}]}>
-        <Animated.Image
-          source={require('../assets/logo.png')}
-          style={[styles.logo, {transform: [{translateX: logoTranslateX}]}]}
-          resizeMode="contain"
-        />
+      <View style={styles.main}>
+        <Animated.View style={[styles.row, {opacity: contentOpacity}]}>
+          <Animated.Image
+            source={require('../assets/logo.png')}
+            style={[styles.logo, {transform: [{translateX: logoTranslateX}]}]}
+            resizeMode="contain"
+          />
+          <Animated.Text
+            style={[styles.text, {transform: [{translateX: textTranslateX}]}]}>
+            SafeWalk
+          </Animated.Text>
+        </Animated.View>
+
         <Animated.Text
-          style={[styles.text, {transform: [{translateX: textTranslateX}]}]}>
-          SafeWalk
+          style={[
+            styles.tagline,
+            {
+              opacity: taglineOpacity,
+              transform: [{translateY: taglineTranslateY}],
+            },
+          ]}>
+          Stay safe. Stay connected.
         </Animated.Text>
-      </Animated.View>
-
-      <Animated.Text
-        style={[
-          styles.tagline,
-          {
-            opacity: taglineOpacity,
-            transform: [{translateY: taglineTranslateY}],
-          },
-        ]}>
-        Stay safe. Stay connected.
-      </Animated.Text>
-
+      </View>
       <Animated.View
         style={[
           styles.slideUpPrompt,
@@ -134,6 +134,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  main: {
+    marginBottom: 80,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -154,12 +157,12 @@ const styles = StyleSheet.create({
     }),
     marginLeft: 5,
   },
-
   tagline: {
     fontSize: 16,
     color: '#555',
     marginTop: -170,
     fontStyle: 'italic',
+    marginLeft: 120,
   },
   slideUpPrompt: {
     position: 'absolute',
