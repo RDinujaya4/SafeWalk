@@ -12,7 +12,20 @@
           "package_name": "com.safewalk"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "870853449114-ld2nv2jfimlicrug1r9hiuosttuchhba.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.safewalk",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "870853449114-69mphtnqfhgbl1vfn05olksgfgvtvuun.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAWmgPzyQgr5X1o3vOS4Ic7Uo6H8Utm1IA"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870853449114-69mphtnqfhgbl1vfn05olksgfgvtvuun.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

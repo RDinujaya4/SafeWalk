@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {RootStackParamList} from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import Spinner from 'react-native-loading-spinner-overlay';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -24,6 +25,13 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        '870853449114-69mphtnqfhgbl1vfn05olksgfgvtvuun.apps.googleusercontent.com',
+    });
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -57,6 +65,76 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
       }
     } catch (error: any) {
       Alert.alert('Login Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
+
+      const signInResult = await GoogleSignin.signIn();
+      const idToken = signInResult.data?.idToken;
+
+      if (!idToken) {
+        throw new Error('No ID token found');
+      }
+
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      const userCredential = await auth().signInWithCredential(
+        googleCredential,
+      );
+      const user = userCredential.user;
+
+      const userDocRef = firestore().collection('users').doc(user.uid);
+      await userDocRef.set(
+        {
+          uid: user.uid,
+          username: user.displayName || 'GoogleUser',
+          email: user.email,
+          role: 'user',
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+
+      console.log('✅ User data saved/updated in users collection:', user.uid);
+
+      let usernameKey = '';
+      if (user.displayName) {
+        usernameKey = user.displayName.replace(/\s+/g, '_');
+      } else if (user.email) {
+        usernameKey = user.email.split('@')[0];
+      } else {
+        usernameKey = user.uid;
+      }
+
+      console.log('⚠️ Trying to save username:', usernameKey);
+
+      const usernameDocRef = firestore()
+        .collection('usernames')
+        .doc(usernameKey);
+      const usernameDoc = await usernameDocRef.get();
+
+      await usernameDocRef.set(
+        {
+          uid: user.uid,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+
+      console.log(
+        '✅ Username saved/updated in usernames collection:',
+        usernameKey,
+      );
+
+      navigation.reset({index: 0, routes: [{name: 'Home'}]});
+    } catch (error: any) {
+      console.log('🔥 Google Sign-in Error:', error);
+      Alert.alert('Error', error.message || 'Google Sign-in failed');
     } finally {
       setLoading(false);
     }
@@ -127,10 +205,12 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
           <View style={styles.divider} />
         </View>
 
-        <Image
-          source={require('../assets/google.png')}
-          style={styles.googleIcon}
-        />
+        <TouchableOpacity onPress={handleGoogleSignIn}>
+          <Image
+            source={require('../assets/google.png')}
+            style={styles.googleIcon}
+          />
+        </TouchableOpacity>
 
         <Text style={styles.footerText}>
           Don’t have an account?{' '}
