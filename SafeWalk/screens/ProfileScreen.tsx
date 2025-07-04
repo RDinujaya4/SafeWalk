@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -28,6 +29,7 @@ const ProfileScreen: React.FC = () => {
   const logoutHandler = async () => {
     try {
       await auth().signOut();
+      await GoogleSignin.signOut();
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],

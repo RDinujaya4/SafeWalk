@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {RootStackParamList} from '../App';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Signup'>;
@@ -29,7 +30,13 @@ const SignupScreen: React.FC<Props> = ({navigation}) => {
   const [passwordError, setPasswordError] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
 
-  // Real-time username check
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        '870853449114-69mphtnqfhgbl1vfn05olksgfgvtvuun.apps.googleusercontent.com',
+    });
+  }, []);
+
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       checkUsername(username);
@@ -116,21 +123,89 @@ const SignupScreen: React.FC<Props> = ({navigation}) => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
+
+      const signInResult = await GoogleSignin.signIn();
+      const idToken = signInResult.data?.idToken;
+
+      if (!idToken) {
+        throw new Error('No ID token found');
+      }
+
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      const userCredential = await auth().signInWithCredential(
+        googleCredential,
+      );
+      const user = userCredential.user;
+
+      const userDocRef = firestore().collection('users').doc(user.uid);
+      await userDocRef.set(
+        {
+          uid: user.uid,
+          username: user.displayName || 'GoogleUser',
+          email: user.email,
+          role: 'user',
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+
+      console.log('✅ User data saved/updated in users collection:', user.uid);
+
+      let usernameKey = '';
+      if (user.displayName) {
+        usernameKey = user.displayName.replace(/\s+/g, '_');
+      } else if (user.email) {
+        usernameKey = user.email.split('@')[0];
+      } else {
+        usernameKey = user.uid;
+      }
+
+      console.log('⚠️ Trying to save username:', usernameKey);
+
+      const usernameDocRef = firestore()
+        .collection('usernames')
+        .doc(usernameKey);
+      const usernameDoc = await usernameDocRef.get();
+
+      await usernameDocRef.set(
+        {
+          uid: user.uid,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+
+      console.log(
+        '✅ Username saved/updated in usernames collection:',
+        usernameKey,
+      );
+
+      navigation.reset({index: 0, routes: [{name: 'Home'}]});
+    } catch (error: any) {
+      console.log('🔥 Google Sign-in Error:', error);
+      Alert.alert('Error', error.message || 'Google Sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Spinner
         visible={loading}
-        textContent="Signing up..."
+        textContent="Please wait..."
         textStyle={{color: '#fff'}}
       />
 
-      {/* Logo Section */}
       <View style={styles.header}>
         <Image source={require('../assets/logo.png')} style={styles.logo} />
         <Text style={styles.logoText}>SafeWalk</Text>
       </View>
 
-      {/* Form Card */}
       <View style={styles.card}>
         <View style={styles.cardHandle} />
         <Text style={styles.title}>Signup</Text>
@@ -217,10 +292,13 @@ const SignupScreen: React.FC<Props> = ({navigation}) => {
           <Text style={styles.loginWithText}>Login With</Text>
           <View style={styles.divider} />
         </View>
-        <Image
-          source={require('../assets/google.png')}
-          style={styles.googleIcon}
-        />
+        
+        <TouchableOpacity onPress={handleGoogleSignIn}>
+          <Image
+            source={require('../assets/google.png')}
+            style={styles.googleIcon}
+          />
+        </TouchableOpacity>
 
         <Text style={styles.footerText}>
           Already have an account?{' '}
